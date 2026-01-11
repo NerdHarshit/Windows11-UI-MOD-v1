@@ -1,0 +1,25 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Win32",
+            "type": "shell",
+            "command": "cl",
+            "args": [
+                "/EHsc",
+                "/I", "webview2/include",
+                "main.cpp",
+                "Webview2/lib/WebView2LoaderStatic.lib",
+                "user32.lib",
+                "gdi32.lib",
+                "ole32.lib",
+                "/Fe:app.exe"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$msCompile"]
+        }
+    ]
+}

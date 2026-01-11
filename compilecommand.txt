@@ -1,0 +1,5 @@
+cl main.cpp /std:c++17 /EHsc ^
+ /I"C:\Users\HARSHIT\Desktop\webview2SDK\build\native\include" ^
+ /link ^
+ /LIBPATH:"C:\Users\HARSHIT\Desktop\webview2SDK\build\native\x64" ^
+ user32.lib ole32.lib advapi32.lib wevtapi.lib WebView2LoaderStatic.lib

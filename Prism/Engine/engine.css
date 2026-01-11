@@ -1,0 +1,187 @@
+body {
+  font-family: "Segoe UI", Inter, sans-serif;
+  background: transparent;
+  color: rgb(0, 0, 0);
+  background-color: rgb(75, 99, 32);
+}
+
+.widget {
+
+  top: 500px;
+  left: 10px;
+  position: relative;
+
+  width: 280px;
+  padding: 16px 18px;
+
+  border-radius: 20px;
+
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+
+  box-shadow: var(--shadow-soft);
+  color: var(--text-primary);
+}
+
+
+.theme-frost {
+  --accent: #b7d9ff;
+  --accent-soft: rgba(183, 217, 255, 0.25);
+  --glass-bg: rgba(255, 255, 255, 0.22);
+  --text-primary: rgba(255, 255, 255, 0.95);
+  --shadow-soft: 0 10px 30px rgba(0,0,0,0.28);
+}
+
+.theme-night {
+  --accent: #9aa4ff;
+  --accent-soft: rgba(154, 164, 255, 0.25);
+
+  --glass-bg: rgba(25, 28, 40, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.15);
+
+  --text-primary: rgba(255, 255, 255, 0.95);
+  --text-secondary: rgba(255, 255, 255, 0.65);
+
+  --shadow-soft: 0 12px 35px rgba(0, 0, 0, 0.45);
+}
+
+.theme-ocean {
+  --accent: #6fc7e1;
+  --accent-soft: rgba(111, 199, 225, 0.3);
+
+  --glass-bg: rgba(30, 110, 150, 0.35);
+  --glass-border: rgba(255, 255, 255, 0.2);
+
+  --shadow-soft: 0 10px 32px rgba(0, 0, 0, 0.35);
+    --text-primary: rgba(255, 255, 255, 0.95);
+}
+
+
+.theme-desert {
+  --accent: #f2c27b;
+  --accent-soft: rgba(242, 194, 123, 0.3);
+
+  --glass-bg: rgba(180, 140, 80, 0.35);
+  --glass-border: rgba(255, 255, 255, 0.25);
+
+  --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.35);
+    --text-primary: rgba(255, 255, 255, 0.95);
+}
+
+.theme-forest {
+  --accent: #7fd18c;
+  --accent-soft: rgba(127, 209, 140, 0.3);
+
+  --glass-bg: rgba(40, 90, 60, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.2);
+
+  --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.4);
+    --text-primary: rgba(255, 255, 255, 0.95);
+}
+
+
+.theme-sunset {
+  --accent: #d48cff;
+  --accent-soft: rgba(212, 140, 255, 0.35);
+
+  --glass-bg: rgba(110, 60, 120, 0.45);
+  --glass-border: rgba(255, 255, 255, 0.25);
+
+  --shadow-soft: 0 12px 35px rgba(0, 0, 0, 0.45);
+    --text-primary: rgba(255, 255, 255, 0.95);
+}
+
+.control-panel {
+  width: 300px;
+  padding: 16px;
+  border-radius: 22px;
+
+  background: var(--glass-bg);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow-soft);
+
+  font-size: 14px;
+}
+
+
+.cp-header {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+}
+
+.cp-logo {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.cp-sub {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.cp-section {
+  margin-top: 14px;
+}
+
+.cp-title {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  opacity: 0.85;
+}
+
+.cp-section label {
+  display: block;
+  font-size: 13px;
+  opacity: 0.8;
+  margin-bottom: 4px;
+}
+
+.cp-section input {
+  margin-right: 6px;
+}
+
+.cp-footer {
+  margin-top: 16px;
+  font-size: 11px;
+  text-align: center;
+  opacity: 0.6;
+}
+
+
+/* Theme dots */
+.theme-options {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.theme-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+.theme-dot.frost { background: #ced1d5; }
+.theme-dot.night { background: #616378; }
+.theme-dot.ocean { background: #6fc7e1; }
+.theme-dot.desert { background: #f2c27b; }
+.theme-dot.forest { background: #7fd18c; }
+.theme-dot.sunset { background: #d48cff; }
+
+body {
+  font-family: "Segoe UI", Inter, sans-serif;
+  background: transparent;
+  color: rgb(0, 0, 0);
+}
+
+#desktop {
+  position: absolute;
+  inset: 0;
+}
+
+

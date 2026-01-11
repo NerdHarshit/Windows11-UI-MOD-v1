@@ -1,0 +1,19 @@
+.digital-clock {
+  text-align: center;
+}
+
+.time {
+  font-size: 36px;
+  font-weight: 600;
+}
+
+#ampm {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+.date {
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.75;
+}

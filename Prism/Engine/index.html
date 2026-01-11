@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PRISM Engine</title>
+  <link rel="stylesheet" href="engine.css">
+</head>
+<body>
+
+  <div id="desktop"></div>
+  
+  <!-- CONTROL PANEL (copied from your old index.html) -->
+  <div class="control-panel theme-frost">
+    <div class="cp-header">
+      <span class="cp-logo">PRISM</span>
+      <span class="cp-sub">Control Panel</span>
+      <label>
+        <input type="checkbox" id="enableAll" checked />
+        Enable widgets
+      </label>
+    </div>
+
+    <div class="cp-section">
+      <div class="cp-title">Clock</div>
+      <label>
+        <input type="checkbox" id="clockDigital" checked />
+        Digital
+      </label>
+    </div>
+
+    <div class="cp-section">
+      <div class="cp-title">Theme</div>
+      <div class="theme-options">
+        <div class="theme-dot frost" data-theme="theme-frost"></div>
+        <div class="theme-dot night" data-theme="theme-night"></div>
+        <div class="theme-dot ocean" data-theme="theme-ocean"></div>
+        <div class="theme-dot desert" data-theme="theme-desert"></div>
+        <div class="theme-dot forest" data-theme="theme-forest"></div>
+        <div class="theme-dot sunset" data-theme="theme-sunset"></div>
+      </div>
+    </div>
+  </div>
+
+  <iframe src="widgets/analog-clock/index.html" class="widget"></iframe>
+  <iframe src="widgets/digital-clock/index.html" class="widget"></iframe>
+  <script src="engine.js"></script>
+</body>
+</html>

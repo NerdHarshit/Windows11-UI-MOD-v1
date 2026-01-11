@@ -1,0 +1,35 @@
+body {
+  margin: 0;
+  background: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  font-family: Segoe UI, sans-serif;
+  background-color: rgb(158, 105, 40);
+}
+
+.system-card {
+  width: 200px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(15px);
+  color: white;
+  box-shadow: 0 0 25px rgba(0,0,0,0.3);
+}
+
+.title {
+  color: black;
+  font-size: 18px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.stat {
+  color: black;
+  display: flex;
+  justify-content: space-between;
+  margin: 8px 0;
+  font-size: 15px;
+}
