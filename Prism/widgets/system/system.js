@@ -1,11 +1,9 @@
-const cpuEl = document.getElementById("cpu");
-const ramEl = document.getElementById("ram");
-const diskEl = document.getElementById("disk");
+console.log("System widget JS loaded");
 
 window.chrome.webview.addEventListener("message", event => {
-    const data = event.data;
+    console.log("Received from C++:", event.data);
 
-    cpuEl.textContent = data.cpu + "%";
-    ramEl.textContent = data.ram + "%";
-    diskEl.textContent = data.disk + "%";
+    document.getElementById("cpu").textContent = event.data.cpu + "%";
+    document.getElementById("ram").textContent = event.data.ram + "%";
+    document.getElementById("disk").textContent = event.data.disk + "%";
 });

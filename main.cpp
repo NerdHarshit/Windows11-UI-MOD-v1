@@ -3,6 +3,8 @@
 #include <wrl.h>
 #include <objbase.h>
 #include <string>
+#include <psapi.h>
+#include <stdint.h>
 
 using namespace Microsoft::WRL;
 
@@ -10,32 +12,81 @@ HWND hwnd = nullptr;
 ComPtr<ICoreWebView2Controller> controller;
 ComPtr<ICoreWebView2> webview;
 
-//new
 #define SYSTEM_TIMER 1
 
-//new
+ULONGLONG prevIdle = 0;
+ULONGLONG prevKernel = 0;
+ULONGLONG prevUser = 0;
+
+int GetCPUUsage()
+{
+    FILETIME idle, kernel, user;
+    GetSystemTimes(&idle, &kernel, &user);
+
+    ULONGLONG i = ((ULONGLONG)idle.dwHighDateTime << 32) | idle.dwLowDateTime;
+    ULONGLONG k = ((ULONGLONG)kernel.dwHighDateTime << 32) | kernel.dwLowDateTime;
+    ULONGLONG u = ((ULONGLONG)user.dwHighDateTime << 32) | user.dwLowDateTime;
+
+    if (prevIdle == 0)
+    {
+        prevIdle = i;
+        prevKernel = k;
+        prevUser = u;
+        return 0;
+    }
+
+    ULONGLONG idleDiff = i - prevIdle;
+    ULONGLONG kernelDiff = k - prevKernel;
+    ULONGLONG userDiff = u - prevUser;
+
+    ULONGLONG total = kernelDiff + userDiff;
+
+    prevIdle = i;
+    prevKernel = k;
+    prevUser = u;
+
+    if (total == 0) return 0;
+
+    return (int)(100 - (idleDiff * 100 / total));
+}
+
+int GetRAMUsage()
+{
+    MEMORYSTATUSEX mem;
+    mem.dwLength = sizeof(mem);
+    GlobalMemoryStatusEx(&mem);
+    return (int)mem.dwMemoryLoad;   // already percent
+}
+
+int GetDiskUsage()
+{
+    ULARGE_INTEGER freeBytes, totalBytes;
+    GetDiskFreeSpaceExW(L"C:\\", &freeBytes, &totalBytes, nullptr);
+
+    double used = 1.0 - ((double)freeBytes.QuadPart / totalBytes.QuadPart);
+    return (int)(used * 100);
+}
+
+// ------------------------------
+// Send data into JavaScript
+// ------------------------------
 void SendFakeSystemData()
 {
     if (!webview) return;
 
-    static int cpu = 30;
-    static int ram = 50;
-    static int disk = 70;
+    int cpu = GetCPUUsage();
+    int ram = GetRAMUsage();
+    int disk = GetDiskUsage();
 
-    // animate values so you see them move
-    cpu = (cpu + 1) % 100;
-    ram = (ram + 2) % 100;
-    disk = (disk + 1) % 100;
+    std::wstring json =
+        L"{\"cpu\":" + std::to_wstring(cpu) +
+        L",\"ram\":" + std::to_wstring(ram) +
+        L",\"disk\":" + std::to_wstring(disk) + L"}";
 
-    std::wstring js =
-        L"window.chrome.webview.postMessage({"
-        L"cpu:" + std::to_wstring(cpu) + L","
-        L"ram:" + std::to_wstring(ram) + L","
-        L"disk:" + std::to_wstring(disk) +
-        L"});";
-
-    webview->ExecuteScript(js.c_str(), nullptr);
+    webview->PostWebMessageAsJson(json.c_str());
 }
+
+
 
 LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
 {
@@ -50,90 +101,95 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
         }
         return 0;
 
-    //new
     case WM_TIMER:
         if (w == SYSTEM_TIMER)
             SendFakeSystemData();
         return 0;
 
-
     case WM_LBUTTONDOWN:
-   {
-    ReleaseCapture();
-    SendMessage(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
-    return 0;
-   }
-
-
+        ReleaseCapture();
+        SendMessage(hwnd, WM_NCLBUTTONDOWN, HTCAPTION, 0);
+        return 0;
 
     case WM_DESTROY:
-        //new
         KillTimer(hwnd, SYSTEM_TIMER);
         PostQuitMessage(0);
         return 0;
     }
+
     return DefWindowProc(h, msg, w, l);
 }
 
 int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
 {
-
-    HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-    if (FAILED(hr)) return -1;
+    CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
     WNDCLASSW wc = {};
-    wc.lpfnWndProc   = WndProc;
-    wc.hInstance     = hInst;
+    wc.lpfnWndProc = WndProc;
+    wc.hInstance = hInst;
     wc.lpszClassName = L"WebView2TestWindow";
-
     RegisterClassW(&wc);
 
     hwnd = CreateWindowExW(
-    WS_EX_TOOLWINDOW ,
-    wc.lpszClassName,
-    L"",
-    WS_POPUP | WS_VISIBLE,
-    100, 100, 800, 600,
-    NULL, NULL, hInst, NULL
-   );
-   ShowWindow(hwnd, SW_SHOW);
-   UpdateWindow(hwnd);
+        WS_EX_TOOLWINDOW,
+        wc.lpszClassName,
+        L"",
+        WS_POPUP | WS_VISIBLE,
+        100, 100, 300, 250,
+        NULL, NULL, hInst, NULL
+    );
 
-  // SetLayeredWindowAttributes(hwnd, 0, 255, LWA_ALPHA)
+    ShowWindow(hwnd, SW_SHOW);
 
-   CreateCoreWebView2EnvironmentWithOptions(
-    nullptr, nullptr, nullptr,
-    Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
-        [](HRESULT hr, ICoreWebView2Environment* env) -> HRESULT
-        {
-            if (!env) return E_FAIL;
+    CreateCoreWebView2EnvironmentWithOptions(
+        nullptr, nullptr, nullptr,
+        Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+            [](HRESULT hr, ICoreWebView2Environment* env) -> HRESULT
+            {
+                env->CreateCoreWebView2Controller(
+                    hwnd,
+                    Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+                        [](HRESULT hr, ICoreWebView2Controller* ctrl) -> HRESULT
+                        {
+                            controller = ctrl;
+                            controller->get_CoreWebView2(&webview);
 
-            env->CreateCoreWebView2Controller(
-                hwnd,
-                Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
-                    [env](HRESULT hr, ICoreWebView2Controller* ctrl) -> HRESULT
-                    {
-                        if (!ctrl) return E_FAIL;
+                            // Enable JS messaging
+                            ComPtr<ICoreWebView2Settings> settings;
+                            webview->get_Settings(&settings);
+                            settings->put_IsWebMessageEnabled(TRUE);
 
-                        controller = ctrl;
-                        controller->get_CoreWebView2(&webview);
+                            webview->OpenDevToolsWindow();
 
-                        RECT bounds;
-                        GetClientRect(hwnd, &bounds);
-                        controller->put_Bounds(bounds);
+                            RECT bounds;
+                            GetClientRect(hwnd, &bounds);
+                            controller->put_Bounds(bounds);
 
-                        webview->Navigate(L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\system\\system.html");
-                        SetTimer(hwnd, SYSTEM_TIMER, 1000, nullptr);
-                        return S_OK;
-                    }
-                ).Get()
-            );
+                            // Navigate to widget
+                            webview->Navigate(
+                                L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\system\\system.html"
+                            );
 
-            return S_OK;
-        }
-    ).Get()
-);
+                            // Wait until page is loaded before starting timer
+                            webview->add_NavigationCompleted(
+                                Callback<ICoreWebView2NavigationCompletedEventHandler>(
+                                    [](ICoreWebView2*, ICoreWebView2NavigationCompletedEventArgs*) -> HRESULT
+                                    {
+                                        SetTimer(hwnd, SYSTEM_TIMER, 1000, nullptr);
+                                        return S_OK;
+                                    }
+                                ).Get(),
+                                nullptr
+                            );
 
+                            return S_OK;
+                        }
+                    ).Get()
+                );
+                return S_OK;
+            }
+        ).Get()
+    );
 
     MSG msg;
     while (GetMessage(&msg, nullptr, 0, 0))
@@ -142,6 +198,5 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
         DispatchMessage(&msg);
     }
 
-    
     return 0;
 }
