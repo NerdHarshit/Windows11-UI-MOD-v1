@@ -5,26 +5,26 @@
 #include <string>
 #include <psapi.h>
 #include <stdint.h>
-#include <vector>   // 🔹 NEW: for multiple widgets
+#include <vector>
 
 using namespace Microsoft::WRL;
 
 /* =========================================================
-   🔹 NEW: WidgetWindow structure
-   Each widget gets its own HWND + WebView + Controller
+   Widget structure (unchanged)
    ========================================================= */
 struct WidgetWindow {
     HWND hwnd;
     ComPtr<ICoreWebView2Controller> controller;
     ComPtr<ICoreWebView2> webview;
     std::wstring url;
-    bool isSystemWidget; // 🔹 to decide if timer/system stats apply
+    bool isSystemWidget;
+    bool isControlPanel;
 };
 
-std::vector<WidgetWindow*> widgets;   // 🔹 holds all widgets
+std::vector<WidgetWindow*> widgets;
 
 #define SYSTEM_TIMER 1
-HWND systemWidgetHwnd = nullptr;  // 🔹 NEW
+HWND systemWidgetHwnd = nullptr;
 
 /* ================== SYSTEM STATS (UNCHANGED) ================== */
 
@@ -82,7 +82,7 @@ int GetDiskUsage()
 }
 
 /* =========================================================
-   🔹 MODIFIED: Send data to ONLY system widgets
+   Send system data (unchanged)
    ========================================================= */
 void SendSystemData()
 {
@@ -105,8 +105,7 @@ void SendSystemData()
 }
 
 /* =========================================================
-   🔹 MODIFIED: Shared WndProc for ALL widgets
-   Uses GWLP_USERDATA to map HWND → WidgetWindow
+   FIXED: Parent window procedure (drag enabled)
    ========================================================= */
 LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
 {
@@ -129,38 +128,55 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
             SendSystemData();
         return 0;
 
-    /*case WM_LBUTTONDOWN:
-        ReleaseCapture();
-        SendMessage(h, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
-        return 0;*/
+    //🔹 NEW: Drag window when parent receives click 
+    case WM_LBUTTONDOWN:
+        if(widget && !widget->isControlPanel)
+        {
+           ReleaseCapture();
+           SendMessage(h, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
+           return 0;
+        }
+        break;
 
     case WM_DESTROY:
-        PostQuitMessage(0); // (we'll refine this later)
+        PostQuitMessage(0);
         return 0;
     }
 
     return DefWindowProc(h, msg, w, l);
 }
 
+
+
 /* =========================================================
-   🔹 NEW: Function to create one widget window
+   Create widget window
    ========================================================= */
 void CreateWidget(
     HINSTANCE hInst,
     ICoreWebView2Environment* env,
     const wchar_t* url,
     int x, int y, int w, int h,
-    bool isSystemWidget)
+    bool isSystemWidget,
+    bool isControlPanel)
 {
     WidgetWindow* widget = new WidgetWindow();
     widget->url = url;
     widget->isSystemWidget = isSystemWidget;
 
+    DWORD style = WS_POPUP | WS_VISIBLE;
+    DWORD exStyle = WS_EX_TOOLWINDOW;
+
+    if(isControlPanel)
+    {
+        style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+        exStyle = 0;//show in taskbar
+    }
+
     widget->hwnd = CreateWindowExW(
-        WS_EX_TOOLWINDOW,
+        exStyle,
         L"WidgetWindow",
         L"",
-        WS_POPUP | WS_VISIBLE,
+        style,
         x, y, w, h,
         nullptr, nullptr, hInst, nullptr
     );
@@ -168,9 +184,7 @@ void CreateWidget(
     SetWindowLongPtr(widget->hwnd, GWLP_USERDATA, (LONG_PTR)widget);
 
     if (isSystemWidget)
-{
-    systemWidgetHwnd = widget->hwnd;
-}
+        systemWidgetHwnd = widget->hwnd;
 
     env->CreateCoreWebView2Controller(
         widget->hwnd,
@@ -189,6 +203,17 @@ void CreateWidget(
                 widget->controller->put_Bounds(r);
 
                 widget->webview->Navigate(widget->url.c_str());
+
+                if(!widget->isControlPanel)
+                {
+                    // 🔹 Disable WebView input so Win32 can receive mouse
+                    HWND child = GetWindow(widget->hwnd, GW_CHILD);
+                    if (child)
+                    {
+                     EnableWindow(child, FALSE);
+                    }
+                }
+
                 return S_OK;
             }
         ).Get()
@@ -197,14 +222,14 @@ void CreateWidget(
     widgets.push_back(widget);
 }
 
+
 /* =========================================================
-   🔹 MAIN
+   MAIN
    ========================================================= */
 int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
 {
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
-    /* 🔹 MODIFIED: One window class for ALL widgets */
     WNDCLASSW wc = {};
     wc.lpfnWndProc = WndProc;
     wc.hInstance = hInst;
@@ -216,23 +241,43 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
         Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
             [hInst](HRESULT, ICoreWebView2Environment* env) -> HRESULT
             {
-                // 🔹 SYSTEM WIDGET (needs timer)
                 CreateWidget(
                     hInst, env,
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\system\\system.html",
                     100, 100, 300, 250,
-                    true
+                    true,
+                    false
                 );
 
-                // 🔹 WEATHER WIDGET (JS-only)
                 CreateWidget(
                     hInst, env,
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\weather\\weather.html",
                     450, 100, 250, 250,
+                    false,
                     false
                 );
 
-                // 🔹 Start system update timer ONCE
+                CreateWidget(
+                    hInst, env,
+                    L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\digital-clock\\index.html",
+                    100, 400, 200, 150,
+                    false,
+                    false
+                );
+
+                CreateWidget(
+                    hInst, env,
+                    L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\analog-clock\\index.html",
+                    350, 400, 600, 600,
+                    false,false
+                );
+
+                CreateWidget(
+                    hInst, env,
+                    L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\Engine\\index.html",
+                    650, 100, 300, 300,
+                    false,true
+                );
                 SetTimer(systemWidgetHwnd, SYSTEM_TIMER, 1000, nullptr);
 
                 return S_OK;
