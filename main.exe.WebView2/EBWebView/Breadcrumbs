@@ -1,6 +1,3 @@
-0:00:00 Microsoft.DataDeletionHelper.End_InterestGroups
-0:00:00 Microsoft.DataDeletionHelper.End_InterestGroups
-0:00:00 Microsoft.DataDeletionHelper.End_PrivateAggregation
 0:00:00 Microsoft.DataDeletionHelper.End_PrivateAggregation
 0:00:00 Microsoft.NewBrowser_Popup
 0:00:00 Microsoft.BrowserList.AddBrowser
@@ -8,25 +5,167 @@
 0:00:00 Tab1 StartNav1 #auto_toplevel
 0:00:00 Microsoft.DataDeletionHelper.End_CdmStorage
 0:00:00 Microsoft.DataDeletionHelper.End_CdmStorage
-0:00:00 Microsoft.DataDeletionHelper.End_DeviceBoundSessions
-0:00:00 Microsoft.DataDeletionHelper.End_DeviceBoundSessions
-0:00:00 Microsoft.DataDeletionHelper.End_SessionStorage
-0:00:00 Microsoft.DataDeletionHelper.End_SessionStorage
-0:00:00 Microsoft.DataDeletionHelper.End_LocalStorage
-0:00:00 Microsoft.DataDeletionHelper.End_LocalStorage
-0:00:00 Microsoft.DataDeletionHelper.End_Cookies
-0:00:00 Microsoft.DataDeletionHelper.End_Cookies
-0:00:00 DevTools_InspectRenderer
-0:00:00 Microsoft.NewBrowser_DevTools
+0:00:00 Microsoft.NewBrowser_Popup
 0:00:00 Microsoft.BrowserList.AddBrowser
 0:00:00 Browser2 Insert active Tab2 at 0
+0:00:00 Tab2 StartNav2 #auto_toplevel
+0:00:00 Microsoft.DataDeletionHelper.End_DeviceBoundSessions
+0:00:00 Microsoft.DataDeletionHelper.End_DeviceBoundSessions
+0:00:00 Microsoft.DataDeletionHelper.End_Cookies
+0:00:00 Microsoft.DataDeletionHelper.End_Cookies
+0:00:00 Tab1 StartNav3 #typed
+0:00:00 Microsoft.DataDeletionHelper.End_SessionStorage
+0:00:00 Microsoft.DataDeletionHelper.End_SessionStorage
+0:00:00 Microsoft.DataDeletionHelper.End_LocalStorage
+0:00:00 Microsoft.DataDeletionHelper.End_LocalStorage
+0:00:00 Tab2 StartNav4 #typed
+0:00:00 Tab2 FinishNav2
+0:00:00 Tab2 PageLoad
+0:00:00 Tab2 FinishNav4
 0:00:00 Tab1 FinishNav1
 0:00:00 Tab1 PageLoad
-0:00:00 Tab1 StartNav3 #typed
-0:00:00 Tab2 FinishNav2
 0:00:00 Tab1 FinishNav3
+0:00:00 Tab2 PageLoad
+0:00:00 PermissionBubbleRequest
+0:00:00 Tab1 PageLoad
+0:00:05 Widget Closed: PermissionPromptBaseView
+0:00:12 Microsoft.Shutdown.TabStripModel.SendDetachWebContentsNotifications
+0:00:00 Startup
+0:00:00 Microsoft.DeleteProfileHelper.CleanUpEphemeralProfiles
+0:00:00 Microsoft.DeleteProfileHelper.CleanUpDeletedProfiles
+0:00:00 Microsoft.NewBrowser_Popup
+0:00:00 Microsoft.BrowserList.AddBrowser
+0:00:00 Browser1 Insert active Tab1 at 0
+0:00:00 Tab1 StartNav1 #auto_toplevel
+0:00:00 Microsoft.NewBrowser_Popup
+0:00:00 Microsoft.BrowserList.AddBrowser
+0:00:00 Browser2 Insert active Tab2 at 0
+0:00:00 Tab2 StartNav2 #auto_toplevel
+0:00:00 Tab1 StartNav3 #typed
+0:00:00 Tab2 StartNav4 #typed
+0:00:00 Tab1 FinishNav1
+0:00:00 Tab1 PageLoad
+0:00:00 Tab1 FinishNav3
+0:00:00 Tab2 FinishNav2
+0:00:00 Tab2 PageLoad
+0:00:00 Tab2 FinishNav4
+0:00:00 PermissionBubbleRequest
 0:00:00 Tab1 PageLoad
 0:00:00 Tab2 PageLoad
-0:00:00 Microsoft.DevTools_SixPlusCohort
-0:00:04 Widget Closed: TooltipAura
-0:08:11 Microsoft.Shutdown.TabStripModel.SendDetachWebContentsNotifications
+0:00:02 Widget Closed: PermissionPromptBaseView
+0:00:17 Widget Closed: MenuHost
+0:00:17 Reload
+0:00:17 Tab1 StartNav6 #reload
+0:00:17 Tab1 FinishNav6
+0:00:17 Tab1 PageLoad
+0:00:19 Widget Closed: MenuHost
+0:00:19 Reload
+0:00:19 Tab2 StartNav7 #reload
+0:00:19 Tab2 FinishNav7
+0:00:19 Tab2 PageLoad
+0:00:19 PermissionBubbleRequest
+0:00:21 Widget Closed: PermissionPromptBaseView
+0:00:31 Widget Closed: MenuHost
+0:00:31 Widget Closed: MenuHost
+0:00:32 Widget Closed: MenuHost
+0:01:39 Microsoft.Shutdown.TabStripModel.SendDetachWebContentsNotifications
+0:00:00 Startup
+0:00:00 Microsoft.DeleteProfileHelper.CleanUpEphemeralProfiles
+0:00:00 Microsoft.DeleteProfileHelper.CleanUpDeletedProfiles
+0:00:00 Microsoft.NewBrowser_Popup
+0:00:00 Microsoft.BrowserList.AddBrowser
+0:00:00 Browser1 Insert active Tab1 at 0
+0:00:00 Tab1 StartNav1 #auto_toplevel
+0:00:00 Microsoft.NewBrowser_Popup
+0:00:00 Microsoft.BrowserList.AddBrowser
+0:00:00 Browser2 Insert active Tab2 at 0
+0:00:00 Tab2 StartNav2 #auto_toplevel
+0:00:00 Tab1 StartNav3 #typed
+0:00:00 Tab2 StartNav4 #typed
+0:00:00 Tab2 FinishNav2
+0:00:00 Tab2 PageLoad
+0:00:00 Tab2 FinishNav4
+0:00:00 Tab1 FinishNav1
+0:00:00 Tab1 PageLoad
+0:00:00 Tab1 FinishNav3
+0:00:00 Tab2 PageLoad
+0:00:00 PermissionBubbleRequest
+0:00:00 Tab1 PageLoad
+0:00:01 Widget Closed: PermissionPromptBaseView
+0:00:23 Widget Closed: MenuHost
+0:00:44 Microsoft.Shutdown.TabStripModel.SendDetachWebContentsNotifications
+0:00:00 Startup
+0:00:00 Microsoft.DeleteProfileHelper.CleanUpEphemeralProfiles
+0:00:00 Microsoft.DeleteProfileHelper.CleanUpDeletedProfiles
+0:00:00 Microsoft.NewBrowser_Popup
+0:00:00 Microsoft.BrowserList.AddBrowser
+0:00:00 Browser1 Insert active Tab1 at 0
+0:00:00 Tab1 StartNav1 #auto_toplevel
+0:00:00 Microsoft.NewBrowser_Popup
+0:00:00 Microsoft.BrowserList.AddBrowser
+0:00:00 Browser2 Insert active Tab2 at 0
+0:00:00 Tab2 StartNav2 #auto_toplevel
+0:00:00 Tab1 StartNav3 #typed
+0:00:00 Tab2 StartNav4 #typed
+0:00:00 Tab1 FinishNav1
+0:00:00 Tab1 PageLoad
+0:00:00 Tab2 FinishNav2
+0:00:00 Tab2 PageLoad
+0:00:00 Tab1 FinishNav3
+0:00:00 Tab2 FinishNav4
+0:00:00 Tab2 PageLoad
+0:00:00 PermissionBubbleRequest
+0:00:00 Tab1 PageLoad
+0:00:03 Widget Closed: PermissionPromptBaseView
+0:00:45 Widget Closed: MenuHost
+0:01:15 Microsoft.Shutdown.TabStripModel.SendDetachWebContentsNotifications
+0:00:00 Startup
+0:00:00 Microsoft.DeleteProfileHelper.CleanUpEphemeralProfiles
+0:00:00 Microsoft.DeleteProfileHelper.CleanUpDeletedProfiles
+0:00:00 Microsoft.NewBrowser_Popup
+0:00:00 Microsoft.BrowserList.AddBrowser
+0:00:00 Browser1 Insert active Tab1 at 0
+0:00:00 Tab1 StartNav1 #auto_toplevel
+0:00:00 Microsoft.NewBrowser_Popup
+0:00:00 Microsoft.BrowserList.AddBrowser
+0:00:00 Browser2 Insert active Tab2 at 0
+0:00:00 Tab2 StartNav2 #auto_toplevel
+0:00:00 Tab1 StartNav3 #typed
+0:00:00 Tab2 StartNav4 #typed
+0:00:00 Tab1 FinishNav1
+0:00:00 Tab2 FinishNav2
+0:00:00 Tab1 PageLoad
+0:00:00 Tab2 PageLoad
+0:00:00 Tab1 FinishNav3
+0:00:00 Tab2 FinishNav4
+0:00:00 Tab2 PageLoad
+0:00:00 PermissionBubbleRequest
+0:00:00 Tab1 PageLoad
+0:00:01 Widget Closed: PermissionPromptBaseView
+0:00:10 Widget Closed: MenuHost
+0:02:04 Microsoft.Shutdown.TabStripModel.SendDetachWebContentsNotifications
+0:00:00 Startup
+0:00:00 Microsoft.DeleteProfileHelper.CleanUpEphemeralProfiles
+0:00:00 Microsoft.DeleteProfileHelper.CleanUpDeletedProfiles
+0:00:00 Microsoft.NewBrowser_Popup
+0:00:00 Microsoft.BrowserList.AddBrowser
+0:00:00 Browser1 Insert active Tab1 at 0
+0:00:00 Tab1 StartNav1 #auto_toplevel
+0:00:00 Microsoft.NewBrowser_Popup
+0:00:00 Microsoft.BrowserList.AddBrowser
+0:00:00 Browser2 Insert active Tab2 at 0
+0:00:00 Tab2 StartNav2 #auto_toplevel
+0:00:00 Tab1 StartNav3 #typed
+0:00:00 Tab2 StartNav4 #typed
+0:00:00 Tab1 FinishNav1
+0:00:00 Tab1 PageLoad
+0:00:00 Tab1 FinishNav3
+0:00:00 Tab2 FinishNav2
+0:00:00 Tab2 PageLoad
+0:00:00 Tab2 FinishNav4
+0:00:00 PermissionBubbleRequest
+0:00:00 Tab2 PageLoad
+0:00:00 Tab1 PageLoad
+0:00:01 Widget Closed: PermissionPromptBaseView
+0:00:12 Widget Closed: MenuHost
+0:03:30 Microsoft.Shutdown.TabStripModel.SendDetachWebContentsNotifications

@@ -1,13 +1,3 @@
-async function getLocation() {
-    const res = await fetch("https://ipapi.co/json/");
-    const data = await res.json();
-    return {
-        city: data.city,
-        lat: data.latitude,
-        lon: data.longitude
-    };
-}
-
 async function getWeather(lat, lon) {
     const url =
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code`;
@@ -25,24 +15,32 @@ function weatherDescription(code) {
     return "Stormy";
 }
 
-async function loadWeather() {
-    try {
-        const loc = await getLocation();
-        const weather = await getWeather(loc.lat, loc.lon);
-
-        const current = weather.current;
-
-        document.getElementById("city").textContent = loc.city;
-        document.getElementById("temp").textContent = current.temperature_2m + "°C";
-        document.getElementById("humidity").textContent = current.relative_humidity_2m + "%";
-        document.getElementById("wind").textContent = current.wind_speed_10m + " km/h";
-        document.getElementById("desc").textContent = weatherDescription(current.weather_code);
+function loadWeather() {
+    if (!navigator.geolocation) {
+        document.getElementById("desc").textContent = "Location unavailable";
+        return;
     }
-    catch {
-        document.getElementById("desc").textContent = "Weather unavailable";
-    }
+
+    navigator.geolocation.getCurrentPosition(
+        async pos => {
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+
+            const weather = await getWeather(lat, lon);
+            const current = weather.current;
+
+            document.getElementById("city").textContent = "Local Weather";
+            document.getElementById("temp").textContent = current.temperature_2m + "°C";
+            document.getElementById("humidity").textContent = current.relative_humidity_2m + "%";
+            document.getElementById("wind").textContent = current.wind_speed_10m + " km/h";
+            document.getElementById("desc").textContent =
+                weatherDescription(current.weather_code);
+        },
+        () => {
+            document.getElementById("desc").textContent = "Location denied";
+        }
+    );
 }
 
-// Load now and every 10 minutes
 loadWeather();
 setInterval(loadWeather, 600000);
