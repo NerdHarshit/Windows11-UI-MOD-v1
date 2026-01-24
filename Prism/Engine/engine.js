@@ -1,62 +1,54 @@
-const desktop = document.getElementById("desktop");
-
-const widgets = {};
-
-function loadWidget(name) {
-  fetch(`../widgets/${name}/index.html`)
-    .then(res => res.text())
-    .then(html => {
-      const container = document.createElement("div");
-      container.className = "widget theme-frost";
-
-      // Fix relative paths
-      const base = document.createElement("base");
-      base.href = `../widgets/${name}/`;
-      container.appendChild(base);
-
-      // Create temp container
-      const temp = document.createElement("div");
-      temp.innerHTML = html;
-
-      // Move all non-script elements
-      [...temp.children].forEach(el => {
-        if (el.tagName !== "SCRIPT") {
-          container.appendChild(el);
-        }
-      });
-
-      // Append to desktop first
-      desktop.appendChild(container);
-
-      // Now execute scripts
-      temp.querySelectorAll("script").forEach(oldScript => {
-        const script = document.createElement("script");
-        script.src = oldScript.src;
-        script.type = oldScript.type || "text/javascript";
-        container.appendChild(script);
-      });
-
-      widgets[name] = container;
-    });
+// 🔹 NEW: helper to talk to C++
+function toggleWidget(name) {
+  // Sends message to C++:
+  // Example: "toggle:system"
+  window.chrome.webview.postMessage("toggle:" + name);
 }
 
-
-// load digital clock
-loadWidget("digital-clock");
-
-// Enable / disable
+/* =========================
+   Enable / Disable all
+   ========================= */
 document.getElementById("enableAll").addEventListener("change", e => {
-  Object.values(widgets).forEach(w => {
-    w.style.display = e.target.checked ? "block" : "none";
-  });
+  const enabled = e.target.checked;
+
+  // 🔹 Ask C++ to toggle all widgets
+  toggleWidget("system");
+  toggleWidget("weather");
+  toggleWidget("digital");
+  toggleWidget("analog");
 });
 
-// Theme
+/* =========================
+   Individual widget toggles
+   ========================= */
+document.getElementById("systemWidget").addEventListener("change", () => {
+  toggleWidget("system");   // matches name in C++
+});
+
+document.getElementById("weatherWidget").addEventListener("change", () => {
+  toggleWidget("weather");
+});
+
+document.getElementById("clockDigital").addEventListener("change", () => {
+  toggleWidget("digital");
+});
+
+document.getElementById("clockAnalog").addEventListener("change", () => {
+  toggleWidget("analog");
+});
+
+/* =========================
+   Theme logic (UI-only for now)
+   ========================= */
 document.querySelectorAll(".theme-dot").forEach(dot => {
   dot.addEventListener("click", () => {
     const theme = dot.dataset.theme;
-    Object.values(widgets).forEach(w => {
-      w.className = `widget ${theme}`;
-    });
+
+    // 🔹 Only changes control panel theme for now
+    document.getElementById("controlPanel").className =
+      "control-panel " + theme;
+
+    // 🔹 Later: we will send theme to widgets via C++
+    // window.chrome.webview.postMessage("theme:" + theme);
   });
 });

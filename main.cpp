@@ -6,11 +6,12 @@
 #include <psapi.h>
 #include <stdint.h>
 #include <vector>
+#include <unordered_map>
 
 using namespace Microsoft::WRL;
 
 /* =========================================================
-   Widget structure (unchanged)
+   Widget structure
    ========================================================= */
 struct WidgetWindow {
     HWND hwnd;
@@ -22,11 +23,12 @@ struct WidgetWindow {
 };
 
 std::vector<WidgetWindow*> widgets;
+std::unordered_map<std::wstring, WidgetWindow*> widgetMap;
 
 #define SYSTEM_TIMER 1
 HWND systemWidgetHwnd = nullptr;
 
-/* ================== SYSTEM STATS (UNCHANGED) ================== */
+/* ================== SYSTEM STATS ================== */
 
 ULONGLONG prevIdle = 0;
 ULONGLONG prevKernel = 0;
@@ -82,7 +84,7 @@ int GetDiskUsage()
 }
 
 /* =========================================================
-   Send system data (unchanged)
+   Send system data
    ========================================================= */
 void SendSystemData()
 {
@@ -105,7 +107,7 @@ void SendSystemData()
 }
 
 /* =========================================================
-   FIXED: Parent window procedure (drag enabled)
+   Window procedure
    ========================================================= */
 LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
 {
@@ -128,13 +130,13 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
             SendSystemData();
         return 0;
 
-    //🔹 NEW: Drag window when parent receives click 
+    // Drag ONLY widgets
     case WM_LBUTTONDOWN:
-        if(widget && !widget->isControlPanel)
+        if (widget && !widget->isControlPanel)
         {
-           ReleaseCapture();
-           SendMessage(h, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
-           return 0;
+            ReleaseCapture();
+            SendMessage(h, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
+            return 0;
         }
         break;
 
@@ -146,14 +148,13 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
     return DefWindowProc(h, msg, w, l);
 }
 
-
-
 /* =========================================================
-   Create widget window
+   Create widget / control panel window
    ========================================================= */
 void CreateWidget(
     HINSTANCE hInst,
     ICoreWebView2Environment* env,
+    const wchar_t* name,          // 🔹 widget name
     const wchar_t* url,
     int x, int y, int w, int h,
     bool isSystemWidget,
@@ -162,20 +163,21 @@ void CreateWidget(
     WidgetWindow* widget = new WidgetWindow();
     widget->url = url;
     widget->isSystemWidget = isSystemWidget;
+    widget->isControlPanel = isControlPanel;
 
     DWORD style = WS_POPUP | WS_VISIBLE;
     DWORD exStyle = WS_EX_TOOLWINDOW;
 
-    if(isControlPanel)
+    if (isControlPanel)
     {
         style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
-        exStyle = 0;//show in taskbar
+        exStyle = 0; // show in taskbar
     }
 
     widget->hwnd = CreateWindowExW(
         exStyle,
         L"WidgetWindow",
-        L"",
+        isControlPanel ? L"Prism Control Panel" : L"",
         style,
         x, y, w, h,
         nullptr, nullptr, hInst, nullptr
@@ -186,10 +188,12 @@ void CreateWidget(
     if (isSystemWidget)
         systemWidgetHwnd = widget->hwnd;
 
+    widgetMap[name] = widget;
+
     env->CreateCoreWebView2Controller(
         widget->hwnd,
         Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
-            [widget](HRESULT, ICoreWebView2Controller* ctrl) -> HRESULT
+            [widget, name](HRESULT, ICoreWebView2Controller* ctrl) -> HRESULT
             {
                 widget->controller = ctrl;
                 widget->controller->get_CoreWebView2(&widget->webview);
@@ -204,14 +208,58 @@ void CreateWidget(
 
                 widget->webview->Navigate(widget->url.c_str());
 
-                if(!widget->isControlPanel)
+                // Disable interaction ONLY for widgets
+                if (!widget->isControlPanel)
                 {
-                    // 🔹 Disable WebView input so Win32 can receive mouse
                     HWND child = GetWindow(widget->hwnd, GW_CHILD);
                     if (child)
-                    {
-                     EnableWindow(child, FALSE);
-                    }
+                        EnableWindow(child, FALSE);
+                }
+
+                // 🔹 Listen for messages from control panel
+                if (widget->isControlPanel)
+                {
+                    widget->webview->add_WebMessageReceived(
+                        Callback<ICoreWebView2WebMessageReceivedEventHandler>(
+                            [](ICoreWebView2*, ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT
+                            {
+                                PWSTR msgRaw = nullptr;
+                                args->get_WebMessageAsJson(&msgRaw);   // 🔹 FIX
+
+                                std::wstring message = msgRaw;
+                                CoTaskMemFree(msgRaw);
+
+
+                                // remove quotes from json string
+                                if (message.size() >=2 && message.front()==L'"' && message.back() == L'"')
+                                {
+                                    message = message.substr(1,message.size()-2);
+                                }
+
+                                if(message.rfind(L"toggle:",0)==0)
+                                {
+                                    std::wstring name= message.substr(7);
+
+                                    if(widgetMap.count(name))
+                                    {
+                                        HWND h = widgetMap[name] ->hwnd;
+
+                                        if(IsWindowVisible(h))
+                                        {
+                                            ShowWindow(h,SW_HIDE);
+                                        }
+
+                                        else{
+                                            ShowWindow(h,SW_SHOW);
+                                        }
+                                    }
+                                }
+
+                                return S_OK;
+                            }
+                        ).Get(),
+                        nullptr
+                    );
                 }
 
                 return S_OK;
@@ -221,7 +269,6 @@ void CreateWidget(
 
     widgets.push_back(widget);
 }
-
 
 /* =========================================================
    MAIN
@@ -243,43 +290,45 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
             {
                 CreateWidget(
                     hInst, env,
+                    L"system",
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\system\\system.html",
                     100, 100, 300, 250,
-                    true,
-                    false
+                    true, false
                 );
 
                 CreateWidget(
                     hInst, env,
+                    L"weather",
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\weather\\weather.html",
                     450, 100, 250, 250,
-                    false,
-                    false
+                    false, false
                 );
 
                 CreateWidget(
                     hInst, env,
+                    L"digital",
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\digital-clock\\index.html",
                     100, 400, 200, 150,
-                    false,
-                    false
+                    false, false
                 );
 
                 CreateWidget(
                     hInst, env,
+                    L"analog",
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\analog-clock\\index.html",
                     350, 400, 600, 600,
-                    false,false
+                    false, false
                 );
 
                 CreateWidget(
                     hInst, env,
+                    L"control",
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\Engine\\index.html",
-                    650, 100, 300, 300,
-                    false,true
+                    650, 100, 400, 400,
+                    false, true
                 );
-                SetTimer(systemWidgetHwnd, SYSTEM_TIMER, 1000, nullptr);
 
+                SetTimer(systemWidgetHwnd, SYSTEM_TIMER, 1000, nullptr);
                 return S_OK;
             }
         ).Get()

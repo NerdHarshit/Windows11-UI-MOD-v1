@@ -7,13 +7,17 @@
 </head>
 <body>
 
-  <div id="desktop"></div>
-  
-  <!-- CONTROL PANEL (copied from your old index.html) -->
-  <div class="control-panel theme-frost">
+  <!-- 🔹 REMOVED: desktop + iframe widgets
+       Widgets are now real Win32 windows controlled by C++ -->
+
+  <!-- CONTROL PANEL -->
+  <div class="control-panel theme-frost" id="controlPanel">
+
     <div class="cp-header">
       <span class="cp-logo">PRISM</span>
       <span class="cp-sub">Control Panel</span>
+
+      <!-- 🔹 Controls ALL widgets -->
       <label>
         <input type="checkbox" id="enableAll" checked />
         Enable widgets
@@ -25,6 +29,22 @@
       <label>
         <input type="checkbox" id="clockDigital" checked />
         Digital
+      </label>
+      <label>
+        <input type="checkbox" id="clockAnalog" checked />
+        Analog
+      </label>
+    </div>
+
+    <div class="cp-section">
+      <div class="cp-title">Widgets</div>
+      <label>
+        <input type="checkbox" id="systemWidget" checked />
+        System
+      </label>
+      <label>
+        <input type="checkbox" id="weatherWidget" checked />
+        Weather
       </label>
     </div>
 
@@ -39,10 +59,9 @@
         <div class="theme-dot sunset" data-theme="theme-sunset"></div>
       </div>
     </div>
+
   </div>
 
-  <iframe src="widgets/analog-clock/index.html" class="widget"></iframe>
-  <iframe src="widgets/digital-clock/index.html" class="widget"></iframe>
   <script src="engine.js"></script>
 </body>
 </html>

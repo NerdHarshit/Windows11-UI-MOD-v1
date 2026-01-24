@@ -7,7 +7,7 @@ body {
   height: 100vh;
   font-family: Segoe UI, sans-serif;
   background-color: rgb(158, 105, 40);
-  -webkit-app-region: drag;
+  /*-webkit-app-region: drag;*/
 }
 /*for buttons interactive elements: its button, a {
   -webkit-app-region: no-drag;

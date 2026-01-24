@@ -7,7 +7,7 @@ body {
   align-items: center;
   background-color: bisque;
   font-family: Segoe UI, sans-serif;
-  -webkit-app-region: drag;
+  /*-webkit-app-region: drag;*/
 }
 
 .weather-card {
