@@ -1,0 +1,5 @@
+system=1
+weather=1
+analog=1
+digital=1
+control=1

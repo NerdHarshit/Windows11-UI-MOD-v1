@@ -7,6 +7,11 @@
 #include <stdint.h>
 #include <vector>
 #include <unordered_map>
+#include <fstream>
+#include <sstream>
+
+std::wstring settingsFile = L"settings.txt";
+
 
 using namespace Microsoft::WRL;
 
@@ -27,6 +32,47 @@ std::unordered_map<std::wstring, WidgetWindow*> widgetMap;
 
 #define SYSTEM_TIMER 1
 HWND systemWidgetHwnd = nullptr;
+
+void SaveWidgetState()
+{
+    std::wofstream file(settingsFile);
+    if (!file.is_open()) return;
+
+    for (auto& pair : widgetMap)
+    {
+        WidgetWindow* w = pair.second;
+        bool visible = IsWindowVisible(w->hwnd);
+        file << pair.first << L"=" << (visible ? 1 : 0) << std::endl;
+    }
+
+    file.close();
+}
+
+void LoadWidgetState()
+{
+    std::wifstream file(settingsFile);
+    if (!file.is_open()) return;
+
+    std::wstring line;
+    while (std::getline(file, line))
+    {
+        size_t eq = line.find(L'=');
+        if (eq == std::wstring::npos) continue;
+
+        std::wstring name = line.substr(0, eq);
+        int value = std::stoi(line.substr(eq + 1));
+
+        if (widgetMap.count(name))
+        {
+            ShowWindow(widgetMap[name]->hwnd,
+                value ? SW_SHOW : SW_HIDE);
+        }
+    }
+
+    file.close();
+}
+
+
 
 /* ================== SYSTEM STATS ================== */
 
@@ -219,6 +265,38 @@ void CreateWidget(
                 // 🔹 Listen for messages from control panel
                 if (widget->isControlPanel)
                 {
+
+                    // 🔹 Sync checkbox UI AFTER control panel page is loaded
+widget->webview->add_NavigationCompleted(
+    Callback<ICoreWebView2NavigationCompletedEventHandler>(
+        [](ICoreWebView2*, ICoreWebView2NavigationCompletedEventArgs*) -> HRESULT
+        {
+            for (auto& pair : widgetMap)
+            {
+                if (pair.second->isControlPanel && pair.second->webview)
+                {
+                    for (auto& w : widgetMap)
+                    {
+                        if (w.second->isControlPanel) continue;
+
+                        bool vis = IsWindowVisible(w.second->hwnd);
+
+                        std::wstring js =
+                            L"setCheckbox('" + w.first + L"', " +
+                            (vis ? L"true" : L"false") + L");";
+
+                        pair.second->webview->ExecuteScript(js.c_str(), nullptr);
+                    }
+                }
+            }
+            return S_OK;
+        }
+    ).Get(),
+    nullptr
+);
+
+
+
                     widget->webview->add_WebMessageReceived(
                         Callback<ICoreWebView2WebMessageReceivedEventHandler>(
                             [](ICoreWebView2*, ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT
@@ -236,22 +314,20 @@ void CreateWidget(
                                     message = message.substr(1,message.size()-2);
                                 }
 
-                                if(message.rfind(L"toggle:",0)==0)
+                                if(message.rfind(L"set:",0)==0)
                                 {
-                                    std::wstring name= message.substr(7);
+                                    size_t first = message.find(L":",4);
+                                    if(first == std::wstring::npos) return S_OK;
 
-                                    if(widgetMap.count(name))
+                                    std::wstring name = message.substr(4,first-4);
+                                    int value = std::stoi(message.substr(first+1));
+
+                                    if(widgetMap.count(name)&& widgetMap[name]->hwnd)
                                     {
                                         HWND h = widgetMap[name] ->hwnd;
 
-                                        if(IsWindowVisible(h))
-                                        {
-                                            ShowWindow(h,SW_HIDE);
-                                        }
-
-                                        else{
-                                            ShowWindow(h,SW_SHOW);
-                                        }
+                                        ShowWindow(h,value? SW_SHOW:SW_HIDE);
+                                        SaveWidgetState();
                                     }
                                 }
 
@@ -327,6 +403,9 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
                     650, 100, 400, 400,
                     false, true
                 );
+
+                LoadWidgetState();
+
 
                 SetTimer(systemWidgetHwnd, SYSTEM_TIMER, 1000, nullptr);
                 return S_OK;
