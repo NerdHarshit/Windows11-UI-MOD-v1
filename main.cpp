@@ -264,7 +264,7 @@ void CreateWidget(
     widget->isControlPanel = isControlPanel;
 
     DWORD style = WS_POPUP | WS_VISIBLE;
-    DWORD exStyle = WS_EX_TOOLWINDOW;
+    DWORD exStyle = WS_EX_TOOLWINDOW | WS_EX_LAYERED;
 
     if (isControlPanel)
     {
@@ -280,6 +280,11 @@ void CreateWidget(
         x, y, w, h,
         nullptr, nullptr, hInst, nullptr
     );
+
+    if(!isControlPanel)
+    {
+        SetLayeredWindowAttributes(widget->hwnd,0,255,LWA_ALPHA);
+    }
 
     SetWindowLongPtr(widget->hwnd, GWLP_USERDATA, (LONG_PTR)widget);
 
@@ -299,6 +304,12 @@ void CreateWidget(
                 ComPtr<ICoreWebView2Settings> settings;
                 widget->webview->get_Settings(&settings);
                 settings->put_IsWebMessageEnabled(TRUE);
+                
+                ComPtr<ICoreWebView2Controller2> controller2;
+if (SUCCEEDED(widget->controller.As(&controller2)))
+{
+    controller2->put_DefaultBackgroundColor({0, 0, 0, 0});
+}
 
                 RECT r;
                 GetClientRect(widget->hwnd, &r);
