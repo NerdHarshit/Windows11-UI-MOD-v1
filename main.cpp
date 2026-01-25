@@ -33,6 +33,27 @@ std::unordered_map<std::wstring, WidgetWindow*> widgetMap;
 #define SYSTEM_TIMER 1
 HWND systemWidgetHwnd = nullptr;
 
+
+void SaveWidgetPositions()
+{
+    std::wofstream file(settingsFile, std::ios::app); // append
+    if (!file.is_open()) return;
+
+    for (auto& pair : widgetMap)
+    {
+        WidgetWindow* w = pair.second;
+        if (!w || !w->hwnd) continue;
+
+        RECT r;
+        GetWindowRect(w->hwnd, &r);
+
+        file << pair.first << L"_x=" << r.left << std::endl;
+        file << pair.first << L"_y=" << r.top << std::endl;
+    }
+
+    file.close();
+}
+
 void SaveWidgetState()
 {
     std::wofstream file(settingsFile);
@@ -46,6 +67,7 @@ void SaveWidgetState()
     }
 
     file.close();
+    SaveWidgetPositions();
 }
 
 void LoadWidgetState()
@@ -53,25 +75,53 @@ void LoadWidgetState()
     std::wifstream file(settingsFile);
     if (!file.is_open()) return;
 
+    std::unordered_map<std::wstring, int> values;
+
     std::wstring line;
     while (std::getline(file, line))
     {
         size_t eq = line.find(L'=');
         if (eq == std::wstring::npos) continue;
 
-        std::wstring name = line.substr(0, eq);
-        int value = std::stoi(line.substr(eq + 1));
-
-        if (widgetMap.count(name))
-        {
-            ShowWindow(widgetMap[name]->hwnd,
-                value ? SW_SHOW : SW_HIDE);
-        }
+        std::wstring key = line.substr(0, eq);
+        int val = std::stoi(line.substr(eq + 1));
+        values[key] = val;
     }
 
     file.close();
-}
 
+    for (auto& pair : widgetMap)
+    {
+        std::wstring name = pair.first;
+        WidgetWindow* w = pair.second;
+
+        if (!w || !w->hwnd) continue;
+
+        // visibility
+        if (values.count(name))
+        {
+            bool visible = values[name] == 1;
+            ShowWindow(w->hwnd, visible ? SW_SHOW : SW_HIDE);
+            if (w->controller)
+                w->controller->put_IsVisible(visible ? TRUE : FALSE);
+        }
+
+        // position X
+        if (values.count(name + L"_x") && values.count(name + L"_y"))
+        {
+            int x = values[name + L"_x"];
+            int y = values[name + L"_y"];
+
+            SetWindowPos(
+                w->hwnd,
+                nullptr,
+                x, y,
+                0, 0,
+                SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE
+            );
+        }
+    }
+}
 
 
 /* ================== SYSTEM STATS ================== */
@@ -152,6 +202,7 @@ void SendSystemData()
     }
 }
 
+
 /* =========================================================
    Window procedure
    ========================================================= */
@@ -182,6 +233,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
         {
             ReleaseCapture();
             SendMessage(h, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
+            SaveWidgetState();
             return 0;
         }
         break;
@@ -267,33 +319,41 @@ void CreateWidget(
                 {
 
                     // 🔹 Sync checkbox UI AFTER control panel page is loaded
+// 🔹 Sync checkbox UI AFTER control panel page is loaded
 widget->webview->add_NavigationCompleted(
     Callback<ICoreWebView2NavigationCompletedEventHandler>(
-        [](ICoreWebView2*, ICoreWebView2NavigationCompletedEventArgs*) -> HRESULT
+        [widget](ICoreWebView2*, ICoreWebView2NavigationCompletedEventArgs*) -> HRESULT
         {
-            for (auto& pair : widgetMap)
+            bool allVisible = true; // 🔹 track master checkbox
+
+            for (auto& w : widgetMap)
             {
-                if (pair.second->isControlPanel && pair.second->webview)
-                {
-                    for (auto& w : widgetMap)
-                    {
-                        if (w.second->isControlPanel) continue;
+                if (w.second->isControlPanel) continue;
 
-                        bool vis = IsWindowVisible(w.second->hwnd);
+                bool vis = IsWindowVisible(w.second->hwnd);
 
-                        std::wstring js =
-                            L"setCheckbox('" + w.first + L"', " +
-                            (vis ? L"true" : L"false") + L");";
+                if (!vis)
+                    allVisible = false; // 🔹 at least one hidden
 
-                        pair.second->webview->ExecuteScript(js.c_str(), nullptr);
-                    }
-                }
+                std::wstring js =
+                    L"setCheckbox('" + w.first + L"', " +
+                    (vis ? L"true" : L"false") + L");";
+
+                widget->webview->ExecuteScript(js.c_str(), nullptr);
             }
+
+            // 🔹 sync "Enable widgets" checkbox
+            std::wstring masterJs =
+                L"setEnableAll(" + std::wstring(allVisible ? L"true" : L"false") + L");";
+
+            widget->webview->ExecuteScript(masterJs.c_str(), nullptr);
+
             return S_OK;
         }
     ).Get(),
     nullptr
 );
+
 
 
 
@@ -326,7 +386,14 @@ widget->webview->add_NavigationCompleted(
                                     {
                                         HWND h = widgetMap[name] ->hwnd;
 
+                                        
+                                        WidgetWindow* w = widgetMap[name];
                                         ShowWindow(h,value? SW_SHOW:SW_HIDE);
+
+                                        if(w->controller)
+                                        {
+                                            w->controller->put_IsVisible(value ?TRUE:FALSE);
+                                        }
                                         SaveWidgetState();
                                     }
                                 }
