@@ -10,6 +10,8 @@
 #include <fstream>
 #include <sstream>
 #include <shellapi.h>
+#include "Prism\resource.h"
+
 
 std::wstring settingsFile = L"settings.txt";
 std::wstring currentTheme = L"theme-frost";
@@ -35,6 +37,15 @@ std::unordered_map<std::wstring, WidgetWindow *> widgetMap;
 
 #define SYSTEM_TIMER 1
 HWND systemWidgetHwnd = nullptr;
+
+std::wstring GetExeDir()
+{
+    wchar_t path[MAX_PATH];
+    GetModuleFileNameW(nullptr, path, MAX_PATH);
+    std::wstring p(path);
+    return p.substr(0, p.find_last_of(L"\\/"));
+}
+
 
 void BroadcastTheme()
 {
@@ -412,7 +423,7 @@ void CreateWidget(
     HINSTANCE hInst,
     ICoreWebView2Environment *env,
     const wchar_t *name, // 🔹 widget name
-    const wchar_t *url,
+    const std::wstring& url,
     int x, int y, int w, int h,
     bool isSystemWidget,
     bool isControlPanel,
@@ -426,6 +437,20 @@ void CreateWidget(
 
     DWORD style = WS_POPUP | WS_VISIBLE;
     DWORD exStyle = WS_EX_TOOLWINDOW; //| WS_EX_LAYERED;
+
+    HICON hIcon = (HICON)LoadImageW(
+    GetModuleHandleW(nullptr),
+    MAKEINTRESOURCEW(101),   // 👈 IMPORTANT: W version
+    IMAGE_ICON,
+    32, 32,
+    LR_DEFAULTCOLOR
+);
+
+SendMessage(widget->hwnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+SendMessage(widget->hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
+
+
+
     if (std::wstring(name) == L"taskbar")
     {
         exStyle |= WS_EX_TRANSPARENT | WS_EX_LAYERED;
@@ -630,49 +655,56 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
 {
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 
-    WNDCLASSW wc = {};
-    wc.lpfnWndProc = WndProc;
-    wc.hInstance = hInst;
-    wc.lpszClassName = L"WidgetWindow";
-    RegisterClassW(&wc);
+    WNDCLASSEXW wc = {};
+wc.cbSize = sizeof(WNDCLASSEXW);
+wc.lpfnWndProc = WndProc;
+wc.hInstance = hInst;
+wc.lpszClassName = L"WidgetWindow";
+wc.hIcon = LoadIconW(hInst, MAKEINTRESOURCEW(IDI_ICON1));
+wc.hIconSm = wc.hIcon;
+
+RegisterClassExW(&wc);
+
 
     CreateCoreWebView2EnvironmentWithOptions(
         nullptr, nullptr, nullptr,
         Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
             [hInst](HRESULT, ICoreWebView2Environment *env) -> HRESULT
             {
+                std::wstring base = GetExeDir();
+
                 CreateWidget(
                     hInst, env,
                     L"system",
-                    L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\system\\system.html",
+                    base + L"\\Prism\\widgets\\system\\system.html",
                     100, 100, 300, 250,
                     true, false, false);
 
                 CreateWidget(
                     hInst, env,
                     L"weather",
-                    L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\weather\\weather.html",
+                    base + L"\\Prism\\widgets\\weather\\weather.html",
                     450, 100, 250, 250,
                     false, false, false);
 
                 CreateWidget(
                     hInst, env,
                     L"digital",
-                    L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\digital-clock\\index.html",
+                    base + L"\\Prism\\widgets\\digital-clock\\index.html",
                     100, 400, 200, 150,
                     false, false, false);
 
                 CreateWidget(
                     hInst, env,
                     L"analog",
-                    L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\analog-clock\\index.html",
+                    base + L"\\Prism\\widgets\\analog-clock\\index.html",
                     350, 400, 600, 600,
                     false, false, false);
 
                 CreateWidget(
                     hInst, env,
                     L"control",
-                    L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\Engine\\index.html",
+                    base + L"\\Prism\\Engine\\index.html",
                     650, 100, 400, 400,
                     false, true, false);
 
@@ -682,7 +714,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
                 CreateWidget(
                     hInst, env,
                     L"taskbar",
-                    L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\Taskbar\\index.html",
+                    base + L"\\Prism\\Taskbar\\index.html",
                     tb.left,
                     tb.top,
                     tb.right - tb.left,

@@ -1,3 +1,5 @@
+rc resource.rc
+
 cl main.cpp /std:c++17 /EHsc ^
  /I"C:\Users\HARSHIT\Desktop\webview2SDK\build\native\include" ^
  /link ^
