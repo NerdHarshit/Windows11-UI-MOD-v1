@@ -14,13 +14,13 @@
 std::wstring settingsFile = L"settings.txt";
 std::wstring currentTheme = L"theme-frost";
 
-
 using namespace Microsoft::WRL;
 
 /* =========================================================
    Widget structure
    ========================================================= */
-struct WidgetWindow {
+struct WidgetWindow
+{
     HWND hwnd;
     ComPtr<ICoreWebView2Controller> controller;
     ComPtr<ICoreWebView2> webview;
@@ -30,19 +30,21 @@ struct WidgetWindow {
     bool isTaskbar;
 };
 
-std::vector<WidgetWindow*> widgets;
-std::unordered_map<std::wstring, WidgetWindow*> widgetMap;
+std::vector<WidgetWindow *> widgets;
+std::unordered_map<std::wstring, WidgetWindow *> widgetMap;
 
 #define SYSTEM_TIMER 1
 HWND systemWidgetHwnd = nullptr;
 
 void BroadcastTheme()
 {
-    for (auto& pair : widgetMap)
+    for (auto &pair : widgetMap)
     {
-        WidgetWindow* w = pair.second;
-        if (!w || !w->webview) continue;
-        if (w->isTaskbar) continue; // skip taskbar for v1
+        WidgetWindow *w = pair.second;
+        if (!w || !w->webview)
+            continue;
+        if (w->isTaskbar)
+            continue; // skip taskbar for v1
 
         std::wstring js =
             L"setTheme('" + currentTheme + L"');";
@@ -50,7 +52,6 @@ void BroadcastTheme()
         w->webview->ExecuteScript(js.c_str(), nullptr);
     }
 }
-
 
 RECT GetRealTaskbarRect()
 {
@@ -62,7 +63,6 @@ RECT GetRealTaskbarRect()
     }
     return r;
 }
-
 
 RECT GetPrimaryTaskbarRect()
 {
@@ -77,7 +77,6 @@ RECT GetPrimaryTaskbarRect()
     return r;
 }
 
-
 RECT GetTaskbarRectPrimary()
 {
     RECT r = {};
@@ -86,7 +85,6 @@ RECT GetTaskbarRectPrimary()
         GetWindowRect(taskbar, &r);
     return r;
 }
-
 
 RECT GetTaskbarRect()
 {
@@ -112,34 +110,38 @@ RECT GetPrimaryMonitorRect()
     return mi.rcMonitor; // 🔹 full monitor (includes taskbar)
 }
 
-
 POINT ClampToMonitor(int x, int y)
 {
-    POINT p = { x, y };
+    POINT p = {x, y};
     HMONITOR mon = MonitorFromPoint(p, MONITOR_DEFAULTTONEAREST);
 
     MONITORINFO mi = {};
     mi.cbSize = sizeof(mi);
     GetMonitorInfo(mon, &mi);
 
-    if (x < mi.rcWork.left)  x = mi.rcWork.left;
-    if (y < mi.rcWork.top)   y = mi.rcWork.top;
-    if (x > mi.rcWork.right - 100) x = mi.rcWork.right - 100;
-    if (y > mi.rcWork.bottom - 100) y = mi.rcWork.bottom - 100;
+    if (x < mi.rcWork.left)
+        x = mi.rcWork.left;
+    if (y < mi.rcWork.top)
+        y = mi.rcWork.top;
+    if (x > mi.rcWork.right - 100)
+        x = mi.rcWork.right - 100;
+    if (y > mi.rcWork.bottom - 100)
+        y = mi.rcWork.bottom - 100;
 
-    return { x, y };
+    return {x, y};
 }
-
 
 void SaveWidgetPositions()
 {
     std::wofstream file(settingsFile, std::ios::app); // append
-    if (!file.is_open()) return;
+    if (!file.is_open())
+        return;
 
-    for (auto& pair : widgetMap)
+    for (auto &pair : widgetMap)
     {
-        WidgetWindow* w = pair.second;
-        if (!w || !w->hwnd) continue;
+        WidgetWindow *w = pair.second;
+        if (!w || !w->hwnd)
+            continue;
 
         RECT r;
         GetWindowRect(w->hwnd, &r);
@@ -154,13 +156,13 @@ void SaveWidgetPositions()
 void SaveWidgetState()
 {
     std::wofstream file(settingsFile);
-    if (!file.is_open()) return;
+    if (!file.is_open())
+        return;
     file << L"theme=" << currentTheme << std::endl;
 
-
-    for (auto& pair : widgetMap)
+    for (auto &pair : widgetMap)
     {
-        WidgetWindow* w = pair.second;
+        WidgetWindow *w = pair.second;
         bool visible = IsWindowVisible(w->hwnd);
         file << pair.first << L"=" << (visible ? 1 : 0) << std::endl;
     }
@@ -172,7 +174,8 @@ void SaveWidgetState()
 void LoadWidgetState()
 {
     std::wifstream file(settingsFile);
-    if (!file.is_open()) return;
+    if (!file.is_open())
+        return;
 
     std::unordered_map<std::wstring, int> values;
 
@@ -180,30 +183,32 @@ void LoadWidgetState()
     while (std::getline(file, line))
     {
         size_t eq = line.find(L'=');
-    if (eq == std::wstring::npos) continue;
+        if (eq == std::wstring::npos)
+            continue;
 
-    std::wstring key = line.substr(0, eq);
-    std::wstring value = line.substr(eq + 1);
+        std::wstring key = line.substr(0, eq);
+        std::wstring value = line.substr(eq + 1);
 
-    if (key == L"theme")
-    {
-        currentTheme = value;
-        continue;
-    }
+        if (key == L"theme")
+        {
+            currentTheme = value;
+            continue;
+        }
 
-    values[key] = std::stoi(value);
+        values[key] = std::stoi(value);
     }
 
     file.close();
 
-    for (auto& pair : widgetMap)
+    for (auto &pair : widgetMap)
     {
         std::wstring name = pair.first;
-        WidgetWindow* w = pair.second;
+        WidgetWindow *w = pair.second;
 
-        if (!w || !w->hwnd) continue;
+        if (!w || !w->hwnd)
+            continue;
 
-        if( name == L"taskbar")
+        if (name == L"taskbar")
             continue; // skip taskbar widget
 
         // visibility
@@ -221,19 +226,17 @@ void LoadWidgetState()
             int x = values[name + L"_x"];
             int y = values[name + L"_y"];
 
-            POINT p = ClampToMonitor(x,y);
+            POINT p = ClampToMonitor(x, y);
 
             SetWindowPos(
                 w->hwnd,
                 nullptr,
                 p.x, p.y,
                 0, 0,
-                SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE
-            );
+                SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
         }
     }
 }
-
 
 /* ================== SYSTEM STATS ================== */
 
@@ -268,7 +271,8 @@ int GetCPUUsage()
     prevKernel = k;
     prevUser = u;
 
-    if (total == 0) return 0;
+    if (total == 0)
+        return 0;
 
     return (int)(100 - (idleDiff * 100 / total));
 }
@@ -313,14 +317,13 @@ void SendSystemData()
     }
 }
 
-
 /* =========================================================
    Window procedure
    ========================================================= */
 LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
 {
-    WidgetWindow* widget =
-        (WidgetWindow*)GetWindowLongPtr(h, GWLP_USERDATA);
+    WidgetWindow *widget =
+        (WidgetWindow *)GetWindowLongPtr(h, GWLP_USERDATA);
 
     switch (msg)
     {
@@ -349,56 +352,54 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
         }
         break;
 
- case WM_DISPLAYCHANGE:
-{
-    for (auto& pair : widgetMap)
+    case WM_DISPLAYCHANGE:
     {
-        WidgetWindow* w = pair.second;
-        if (!w || !w->isTaskbar) continue;
-
-        RECT tb = GetTaskbarRect();
-
-        SetWindowPos(
-            w->hwnd,
-            HWND_TOPMOST,
-            tb.left,
-            tb.top,
-            tb.right - tb.left,
-            tb.bottom - tb.top,
-            SWP_NOACTIVATE
-        );
-    }
-    return 0;
-}
-
-
-    case WM_CLOSE:
-    if (widget)
-    {
-        if (widget->isControlPanel)
+        for (auto &pair : widgetMap)
         {
-            // 🔹 Control panel closed → exit app
-            SaveWidgetState();   // save state + positions
-            PostQuitMessage(0);
-        }
-        else
-        {
-            // 🔹 Widget closed → just hide it
-            ShowWindow(h, SW_HIDE);
+            WidgetWindow *w = pair.second;
+            if (!w || !w->isTaskbar)
+                continue;
 
-            // also hide WebView2 controller
-            if (widget->controller)
-                widget->controller->put_IsVisible(FALSE);
+            RECT tb = GetTaskbarRect();
 
-            SaveWidgetState();   // remember it's hidden
+            SetWindowPos(
+                w->hwnd,
+                HWND_TOPMOST,
+                tb.left,
+                tb.top,
+                tb.right - tb.left,
+                tb.bottom - tb.top,
+                SWP_NOACTIVATE);
         }
         return 0;
     }
-    break;
 
-case WM_DESTROY:
-    return 0; // do nothing here
+    case WM_CLOSE:
+        if (widget)
+        {
+            if (widget->isControlPanel)
+            {
+                // 🔹 Control panel closed → exit app
+                SaveWidgetState(); // save state + positions
+                PostQuitMessage(0);
+            }
+            else
+            {
+                // 🔹 Widget closed → just hide it
+                ShowWindow(h, SW_HIDE);
 
+                // also hide WebView2 controller
+                if (widget->controller)
+                    widget->controller->put_IsVisible(FALSE);
+
+                SaveWidgetState(); // remember it's hidden
+            }
+            return 0;
+        }
+        break;
+
+    case WM_DESTROY:
+        return 0; // do nothing here
     }
 
     return DefWindowProc(h, msg, w, l);
@@ -409,28 +410,28 @@ case WM_DESTROY:
    ========================================================= */
 void CreateWidget(
     HINSTANCE hInst,
-    ICoreWebView2Environment* env,
-    const wchar_t* name,          // 🔹 widget name
-    const wchar_t* url,
+    ICoreWebView2Environment *env,
+    const wchar_t *name, // 🔹 widget name
+    const wchar_t *url,
     int x, int y, int w, int h,
     bool isSystemWidget,
     bool isControlPanel,
-     bool isTaskbar )
+    bool isTaskbar)
 {
-    WidgetWindow* widget = new WidgetWindow();
+    WidgetWindow *widget = new WidgetWindow();
     widget->url = url;
     widget->isSystemWidget = isSystemWidget;
     widget->isControlPanel = isControlPanel;
     widget->isTaskbar = (std::wstring(name) == L"taskbar");
 
     DWORD style = WS_POPUP | WS_VISIBLE;
-    DWORD exStyle = WS_EX_TOOLWINDOW ;//| WS_EX_LAYERED;
+    DWORD exStyle = WS_EX_TOOLWINDOW; //| WS_EX_LAYERED;
     if (std::wstring(name) == L"taskbar")
-{
-    exStyle |= WS_EX_TRANSPARENT | WS_EX_LAYERED; 
-    // 🔹 WS_EX_TRANSPARENT = click-through
-    // 🔹 WS_EX_LAYERED = required for transparency
-}
+    {
+        exStyle |= WS_EX_TRANSPARENT | WS_EX_LAYERED;
+        // 🔹 WS_EX_TRANSPARENT = click-through
+        // 🔹 WS_EX_LAYERED = required for transparency
+    }
 
     if (isControlPanel)
     {
@@ -444,15 +445,13 @@ void CreateWidget(
         isControlPanel ? L"Prism Control Panel" : L"",
         style,
         x, y, w, h,
-        nullptr, nullptr, hInst, nullptr
-    );
+        nullptr, nullptr, hInst, nullptr);
 
     if (std::wstring(name) == L"taskbar")
-{
-    SetLayeredWindowAttributes(widget->hwnd, 0, 255, LWA_ALPHA);
-    // 🔹 ensures window is visible but mouse passes through
-}
-
+    {
+        SetLayeredWindowAttributes(widget->hwnd, 0, 255, LWA_ALPHA);
+        // 🔹 ensures window is visible but mouse passes through
+    }
 
     /*if(!isControlPanel)
     {
@@ -467,20 +466,18 @@ void CreateWidget(
     widgetMap[name] = widget;
 
     if (std::wstring(name) == L"taskbar")
-{
-    SetWindowPos(
-        widget->hwnd,
-        HWND_TOPMOST,
-        0, 0, 0, 0,
-        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
-    );
-}
-
+    {
+        SetWindowPos(
+            widget->hwnd,
+            HWND_TOPMOST,
+            0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    }
 
     env->CreateCoreWebView2Controller(
         widget->hwnd,
         Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
-            [widget, name](HRESULT, ICoreWebView2Controller* ctrl) -> HRESULT
+            [widget, name](HRESULT, ICoreWebView2Controller *ctrl) -> HRESULT
             {
                 widget->controller = ctrl;
                 widget->controller->get_CoreWebView2(&widget->webview);
@@ -488,12 +485,12 @@ void CreateWidget(
                 ComPtr<ICoreWebView2Settings> settings;
                 widget->webview->get_Settings(&settings);
                 settings->put_IsWebMessageEnabled(TRUE);
-                
+
                 ComPtr<ICoreWebView2Controller2> controller2;
-if (SUCCEEDED(widget->controller.As(&controller2)))
-{
-    controller2->put_DefaultBackgroundColor({0, 0, 0, 0});
-}
+                if (SUCCEEDED(widget->controller.As(&controller2)))
+                {
+                    controller2->put_DefaultBackgroundColor({0, 0, 0, 0});
+                }
 
                 RECT r;
                 GetClientRect(widget->hwnd, &r);
@@ -502,23 +499,21 @@ if (SUCCEEDED(widget->controller.As(&controller2)))
                 widget->webview->Navigate(widget->url.c_str());
 
                 // 🔹 Apply theme after widget loads
-widget->webview->add_NavigationCompleted(
-    Callback<ICoreWebView2NavigationCompletedEventHandler>(
-        [widget](ICoreWebView2*, ICoreWebView2NavigationCompletedEventArgs*) -> HRESULT
-        {
-            if (!widget->isControlPanel && !widget->isTaskbar)
-            {
-                std::wstring js =
-                    L"setTheme('" + currentTheme + L"');";
+                widget->webview->add_NavigationCompleted(
+                    Callback<ICoreWebView2NavigationCompletedEventHandler>(
+                        [widget](ICoreWebView2 *, ICoreWebView2NavigationCompletedEventArgs *) -> HRESULT
+                        {
+                            if (!widget->isControlPanel && !widget->isTaskbar)
+                            {
+                                std::wstring js =
+                                    L"setTheme('" + currentTheme + L"');";
 
-                widget->webview->ExecuteScript(js.c_str(), nullptr);
-            }
-            return S_OK;
-        }
-    ).Get(),
-    nullptr
-);
-
+                                widget->webview->ExecuteScript(js.c_str(), nullptr);
+                            }
+                            return S_OK;
+                        })
+                        .Get(),
+                    nullptr);
 
                 // Disable interaction ONLY for widgets
                 if (!widget->isControlPanel)
@@ -533,104 +528,97 @@ widget->webview->add_NavigationCompleted(
                 {
 
                     // 🔹 Sync checkbox UI AFTER control panel page is loaded
-// 🔹 Sync checkbox UI AFTER control panel page is loaded
-widget->webview->add_NavigationCompleted(
-    Callback<ICoreWebView2NavigationCompletedEventHandler>(
-        [widget](ICoreWebView2*, ICoreWebView2NavigationCompletedEventArgs*) -> HRESULT
-        {
-            bool allVisible = true; // 🔹 track master checkbox
+                    // 🔹 Sync checkbox UI AFTER control panel page is loaded
+                    widget->webview->add_NavigationCompleted(
+                        Callback<ICoreWebView2NavigationCompletedEventHandler>(
+                            [widget](ICoreWebView2 *, ICoreWebView2NavigationCompletedEventArgs *) -> HRESULT
+                            {
+                                bool allVisible = true; // 🔹 track master checkbox
 
-            for (auto& w : widgetMap)
-            {
-                if (w.second->isControlPanel) continue;
+                                for (auto &w : widgetMap)
+                                {
+                                    if (w.second->isControlPanel)
+                                        continue;
 
-                bool vis = IsWindowVisible(w.second->hwnd);
+                                    bool vis = IsWindowVisible(w.second->hwnd);
 
-                if (!vis)
-                    allVisible = false; // 🔹 at least one hidden
+                                    if (!vis)
+                                        allVisible = false; // 🔹 at least one hidden
 
-                std::wstring js =
-                    L"setCheckbox('" + w.first + L"', " +
-                    (vis ? L"true" : L"false") + L");";
+                                    std::wstring js =
+                                        L"setCheckbox('" + w.first + L"', " +
+                                        (vis ? L"true" : L"false") + L");";
 
-                widget->webview->ExecuteScript(js.c_str(), nullptr);
-            }
+                                    widget->webview->ExecuteScript(js.c_str(), nullptr);
+                                }
 
-            // 🔹 sync "Enable widgets" checkbox
-            std::wstring masterJs =
-                L"setEnableAll(" + std::wstring(allVisible ? L"true" : L"false") + L");";
+                                // 🔹 sync "Enable widgets" checkbox
+                                std::wstring masterJs =
+                                    L"setEnableAll(" + std::wstring(allVisible ? L"true" : L"false") + L");";
 
-            widget->webview->ExecuteScript(masterJs.c_str(), nullptr);
+                                widget->webview->ExecuteScript(masterJs.c_str(), nullptr);
 
-            return S_OK;
-        }
-    ).Get(),
-    nullptr
-);
-
-
-
+                                return S_OK;
+                            })
+                            .Get(),
+                        nullptr);
 
                     widget->webview->add_WebMessageReceived(
                         Callback<ICoreWebView2WebMessageReceivedEventHandler>(
-                            [](ICoreWebView2*, ICoreWebView2WebMessageReceivedEventArgs* args) -> HRESULT
+                            [](ICoreWebView2 *, ICoreWebView2WebMessageReceivedEventArgs *args) -> HRESULT
                             {
                                 PWSTR msgRaw = nullptr;
-                                args->get_WebMessageAsJson(&msgRaw);   // 🔹 FIX
+                                args->get_WebMessageAsJson(&msgRaw); // 🔹 FIX
 
                                 std::wstring message = msgRaw;
                                 CoTaskMemFree(msgRaw);
 
-
                                 // remove quotes from json string
-                                if (message.size() >=2 && message.front()==L'"' && message.back() == L'"')
+                                if (message.size() >= 2 && message.front() == L'"' && message.back() == L'"')
                                 {
-                                    message = message.substr(1,message.size()-2);
+                                    message = message.substr(1, message.size() - 2);
                                 }
 
-                                if(message.rfind(L"set:",0)==0)
+                                if (message.rfind(L"set:", 0) == 0)
                                 {
-                                    size_t first = message.find(L":",4);
-                                    if(first == std::wstring::npos) return S_OK;
+                                    size_t first = message.find(L":", 4);
+                                    if (first == std::wstring::npos)
+                                        return S_OK;
 
-                                    std::wstring name = message.substr(4,first-4);
-                                    int value = std::stoi(message.substr(first+1));
+                                    std::wstring name = message.substr(4, first - 4);
+                                    int value = std::stoi(message.substr(first + 1));
 
-                                    if(widgetMap.count(name)&& widgetMap[name]->hwnd)
+                                    if (widgetMap.count(name) && widgetMap[name]->hwnd)
                                     {
-                                        HWND h = widgetMap[name] ->hwnd;
+                                        HWND h = widgetMap[name]->hwnd;
 
-                                        
-                                        WidgetWindow* w = widgetMap[name];
-                                        ShowWindow(h,value? SW_SHOW:SW_HIDE);
+                                        WidgetWindow *w = widgetMap[name];
+                                        ShowWindow(h, value ? SW_SHOW : SW_HIDE);
 
-                                        if(w->controller)
+                                        if (w->controller)
                                         {
-                                            w->controller->put_IsVisible(value ?TRUE:FALSE);
+                                            w->controller->put_IsVisible(value ? TRUE : FALSE);
                                         }
                                         SaveWidgetState();
                                     }
                                 }
 
                                 if (message.rfind(L"theme:", 0) == 0)
-{
-    currentTheme = message.substr(6); // after "theme:"
-    SaveWidgetState();
-    BroadcastTheme();
-}
-
+                                {
+                                    currentTheme = message.substr(6); // after "theme:"
+                                    SaveWidgetState();
+                                    BroadcastTheme();
+                                }
 
                                 return S_OK;
-                            }
-                        ).Get(),
-                        nullptr
-                    );
+                            })
+                            .Get(),
+                        nullptr);
                 }
 
                 return S_OK;
-            }
-        ).Get()
-    );
+            })
+            .Get());
 
     widgets.push_back(widget);
 }
@@ -651,73 +639,64 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
     CreateCoreWebView2EnvironmentWithOptions(
         nullptr, nullptr, nullptr,
         Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
-            [hInst](HRESULT, ICoreWebView2Environment* env) -> HRESULT
+            [hInst](HRESULT, ICoreWebView2Environment *env) -> HRESULT
             {
                 CreateWidget(
                     hInst, env,
                     L"system",
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\system\\system.html",
                     100, 100, 300, 250,
-                    true, false,false
-                );
+                    true, false, false);
 
                 CreateWidget(
                     hInst, env,
                     L"weather",
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\weather\\weather.html",
                     450, 100, 250, 250,
-                    false, false,false
-                );
+                    false, false, false);
 
                 CreateWidget(
                     hInst, env,
                     L"digital",
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\digital-clock\\index.html",
                     100, 400, 200, 150,
-                    false, false,false
-                );
+                    false, false, false);
 
                 CreateWidget(
                     hInst, env,
                     L"analog",
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\analog-clock\\index.html",
                     350, 400, 600, 600,
-                    false, false,false
-                );
+                    false, false, false);
 
                 CreateWidget(
                     hInst, env,
                     L"control",
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\Engine\\index.html",
                     650, 100, 400, 400,
-                    false, true,false
-                );
+                    false, true, false);
 
                 // 🔹 TASKBAR WIDGET
-RECT tb = GetRealTaskbarRect();
+                RECT tb = GetRealTaskbarRect();
 
-CreateWidget(
-    hInst, env,
-    L"taskbar",
-    L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\Taskbar\\index.html",
-    tb.left,
-    tb.top,
-    tb.right - tb.left,
-    tb.bottom - tb.top,
-    false,
-    false,true
-);
-
+                CreateWidget(
+                    hInst, env,
+                    L"taskbar",
+                    L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\Taskbar\\index.html",
+                    tb.left,
+                    tb.top,
+                    tb.right - tb.left,
+                    tb.bottom - tb.top,
+                    false,
+                    false, true);
 
                 LoadWidgetState();
                 BroadcastTheme();
 
-
                 SetTimer(systemWidgetHwnd, SYSTEM_TIMER, 1000, nullptr);
                 return S_OK;
-            }
-        ).Get()
-    );
+            })
+            .Get());
 
     MSG msg;
     while (GetMessage(&msg, nullptr, 0, 0))

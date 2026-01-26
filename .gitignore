@@ -1,0 +1,26 @@
+# ===== Build outputs =====
+*.obj
+*.exe
+*.pdb
+*.ilk
+*.lib
+*.exp
+
+# ===== Visual Studio =====
+.vs/
+x64/
+Debug/
+Release/
+
+# ===== Runtime files =====
+settings.txt
+
+# ===== WebView2 =====
+WebView2.*
+main.exe.WebView2.*
+# ===== Windows junk =====
+Thumbs.db
+desktop.ini
+
+# ===== Logs =====
+*.log
