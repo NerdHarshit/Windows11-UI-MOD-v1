@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <sstream>
+#include <shellapi.h>
 
 std::wstring settingsFile = L"settings.txt";
 
@@ -25,6 +26,7 @@ struct WidgetWindow {
     std::wstring url;
     bool isSystemWidget;
     bool isControlPanel;
+    bool isTaskbar;
 };
 
 std::vector<WidgetWindow*> widgets;
@@ -32,6 +34,84 @@ std::unordered_map<std::wstring, WidgetWindow*> widgetMap;
 
 #define SYSTEM_TIMER 1
 HWND systemWidgetHwnd = nullptr;
+
+RECT GetRealTaskbarRect()
+{
+    RECT r = {};
+    HWND taskbar = FindWindowW(L"Shell_TrayWnd", nullptr);
+    if (taskbar)
+    {
+        GetWindowRect(taskbar, &r);
+    }
+    return r;
+}
+
+
+RECT GetPrimaryTaskbarRect()
+{
+    RECT r = {};
+    APPBARDATA abd = {};
+    abd.cbSize = sizeof(abd);
+
+    if (SHAppBarMessage(ABM_GETTASKBARPOS, &abd))
+    {
+        r = abd.rc;
+    }
+    return r;
+}
+
+
+RECT GetTaskbarRectPrimary()
+{
+    RECT r = {};
+    HWND taskbar = FindWindowW(L"Shell_TrayWnd", nullptr);
+    if (taskbar)
+        GetWindowRect(taskbar, &r);
+    return r;
+}
+
+
+RECT GetTaskbarRect()
+{
+    RECT rc = {0};
+    APPBARDATA abd = {};
+    abd.cbSize = sizeof(abd);
+
+    if (SHAppBarMessage(ABM_GETTASKBARPOS, &abd))
+    {
+        rc = abd.rc;
+    }
+
+    return rc;
+}
+RECT GetPrimaryMonitorRect()
+{
+    HMONITOR hMon = MonitorFromPoint({0, 0}, MONITOR_DEFAULTTOPRIMARY);
+
+    MONITORINFO mi = {};
+    mi.cbSize = sizeof(mi);
+    GetMonitorInfo(hMon, &mi);
+
+    return mi.rcMonitor; // 🔹 full monitor (includes taskbar)
+}
+
+
+POINT ClampToMonitor(int x, int y)
+{
+    POINT p = { x, y };
+    HMONITOR mon = MonitorFromPoint(p, MONITOR_DEFAULTTONEAREST);
+
+    MONITORINFO mi = {};
+    mi.cbSize = sizeof(mi);
+    GetMonitorInfo(mon, &mi);
+
+    if (x < mi.rcWork.left)  x = mi.rcWork.left;
+    if (y < mi.rcWork.top)   y = mi.rcWork.top;
+    if (x > mi.rcWork.right - 100) x = mi.rcWork.right - 100;
+    if (y > mi.rcWork.bottom - 100) y = mi.rcWork.bottom - 100;
+
+    return { x, y };
+}
 
 
 void SaveWidgetPositions()
@@ -97,6 +177,9 @@ void LoadWidgetState()
 
         if (!w || !w->hwnd) continue;
 
+        if( name == L"taskbar")
+            continue; // skip taskbar widget
+
         // visibility
         if (values.count(name))
         {
@@ -112,10 +195,12 @@ void LoadWidgetState()
             int x = values[name + L"_x"];
             int y = values[name + L"_y"];
 
+            POINT p = ClampToMonitor(x,y);
+
             SetWindowPos(
                 w->hwnd,
                 nullptr,
-                x, y,
+                p.x, p.y,
                 0, 0,
                 SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE
             );
@@ -229,7 +314,7 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
 
     // Drag ONLY widgets
     case WM_LBUTTONDOWN:
-        if (widget && !widget->isControlPanel)
+        if (widget && !widget->isControlPanel && !widget->isTaskbar)
         {
             ReleaseCapture();
             SendMessage(h, WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
@@ -238,9 +323,56 @@ LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
         }
         break;
 
-    case WM_DESTROY:
-        PostQuitMessage(0);
+ case WM_DISPLAYCHANGE:
+{
+    for (auto& pair : widgetMap)
+    {
+        WidgetWindow* w = pair.second;
+        if (!w || !w->isTaskbar) continue;
+
+        RECT tb = GetTaskbarRect();
+
+        SetWindowPos(
+            w->hwnd,
+            HWND_TOPMOST,
+            tb.left,
+            tb.top,
+            tb.right - tb.left,
+            tb.bottom - tb.top,
+            SWP_NOACTIVATE
+        );
+    }
+    return 0;
+}
+
+
+    case WM_CLOSE:
+    if (widget)
+    {
+        if (widget->isControlPanel)
+        {
+            // 🔹 Control panel closed → exit app
+            SaveWidgetState();   // save state + positions
+            PostQuitMessage(0);
+        }
+        else
+        {
+            // 🔹 Widget closed → just hide it
+            ShowWindow(h, SW_HIDE);
+
+            // also hide WebView2 controller
+            if (widget->controller)
+                widget->controller->put_IsVisible(FALSE);
+
+            SaveWidgetState();   // remember it's hidden
+        }
         return 0;
+    }
+    break;
+
+case WM_DESTROY:
+    return 0; // do nothing here
+
     }
 
     return DefWindowProc(h, msg, w, l);
@@ -256,15 +388,23 @@ void CreateWidget(
     const wchar_t* url,
     int x, int y, int w, int h,
     bool isSystemWidget,
-    bool isControlPanel)
+    bool isControlPanel,
+     bool isTaskbar )
 {
     WidgetWindow* widget = new WidgetWindow();
     widget->url = url;
     widget->isSystemWidget = isSystemWidget;
     widget->isControlPanel = isControlPanel;
+    widget->isTaskbar = (std::wstring(name) == L"taskbar");
 
     DWORD style = WS_POPUP | WS_VISIBLE;
-    DWORD exStyle = WS_EX_TOOLWINDOW | WS_EX_LAYERED;
+    DWORD exStyle = WS_EX_TOOLWINDOW ;//| WS_EX_LAYERED;
+    if (std::wstring(name) == L"taskbar")
+{
+    exStyle |= WS_EX_TRANSPARENT | WS_EX_LAYERED; 
+    // 🔹 WS_EX_TRANSPARENT = click-through
+    // 🔹 WS_EX_LAYERED = required for transparency
+}
 
     if (isControlPanel)
     {
@@ -281,10 +421,17 @@ void CreateWidget(
         nullptr, nullptr, hInst, nullptr
     );
 
-    if(!isControlPanel)
+    if (std::wstring(name) == L"taskbar")
+{
+    SetLayeredWindowAttributes(widget->hwnd, 0, 255, LWA_ALPHA);
+    // 🔹 ensures window is visible but mouse passes through
+}
+
+
+    /*if(!isControlPanel)
     {
         SetLayeredWindowAttributes(widget->hwnd,0,255,LWA_ALPHA);
-    }
+    }*/
 
     SetWindowLongPtr(widget->hwnd, GWLP_USERDATA, (LONG_PTR)widget);
 
@@ -292,6 +439,17 @@ void CreateWidget(
         systemWidgetHwnd = widget->hwnd;
 
     widgetMap[name] = widget;
+
+    if (std::wstring(name) == L"taskbar")
+{
+    SetWindowPos(
+        widget->hwnd,
+        HWND_TOPMOST,
+        0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
+    );
+}
+
 
     env->CreateCoreWebView2Controller(
         widget->hwnd,
@@ -447,7 +605,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
                     L"system",
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\system\\system.html",
                     100, 100, 300, 250,
-                    true, false
+                    true, false,false
                 );
 
                 CreateWidget(
@@ -455,7 +613,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
                     L"weather",
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\weather\\weather.html",
                     450, 100, 250, 250,
-                    false, false
+                    false, false,false
                 );
 
                 CreateWidget(
@@ -463,7 +621,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
                     L"digital",
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\digital-clock\\index.html",
                     100, 400, 200, 150,
-                    false, false
+                    false, false,false
                 );
 
                 CreateWidget(
@@ -471,7 +629,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
                     L"analog",
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\widgets\\analog-clock\\index.html",
                     350, 400, 600, 600,
-                    false, false
+                    false, false,false
                 );
 
                 CreateWidget(
@@ -479,8 +637,24 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int)
                     L"control",
                     L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\Engine\\index.html",
                     650, 100, 400, 400,
-                    false, true
+                    false, true,false
                 );
+
+                // 🔹 TASKBAR WIDGET
+RECT tb = GetRealTaskbarRect();
+
+CreateWidget(
+    hInst, env,
+    L"taskbar",
+    L"C:\\Users\\HARSHIT\\Desktop\\windows11 mod\\Prism\\Taskbar\\index.html",
+    tb.left,
+    tb.top,
+    tb.right - tb.left,
+    tb.bottom - tb.top,
+    false,
+    false,true
+);
+
 
                 LoadWidgetState();
 

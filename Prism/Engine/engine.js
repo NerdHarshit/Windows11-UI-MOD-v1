@@ -43,6 +43,11 @@ function setCheckbox(name, value) {
 }
 
 
+function setEnableAll(value) {
+  document.getElementById("enableAll").checked = value;
+}
+
+
 
 /* =========================
    Theme logic (UI-only for now)

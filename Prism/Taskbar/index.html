@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Prism Taskbar</title>
+<style>
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* 🔹 MAIN BAR */
+#bar {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 0 20px;
+
+  background:transparent;
+  border-radius: 20px;
+  color: rgb(255, 255, 255);
+
+}
+
+/* LEFT */
+#left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 120px;
+}
+
+#version {
+  padding: 6px 14px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.4);
+  font-weight: 600;
+}
+
+
+#logo {
+  padding: 4px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.4);
+
+  height: 30px;
+  width: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 5px;   /* 🔹 keep aspect ratio */
+}
+
+</style>
+</head>
+<body>
+
+<div id="bar" class="theme-sunset">
+  <div id="left">
+    <div id="version">Prism v1</div>
+    <div id="logo">
+      <!-- 🔹 Use relative path -->
+      <img src="logo.png" alt="Prism logo">
+    </div>
+  </div>
+
+
+</div>
+</body>
+</html>
