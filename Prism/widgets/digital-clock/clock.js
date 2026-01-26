@@ -15,6 +15,9 @@ function tick() {
   ampmEl.textContent = ampm;
   dateEl.textContent = now.toDateString();
 }
+function setTheme(theme) {
+  document.body.className = theme;
+}
 
 setInterval(tick, 1000);
 tick();

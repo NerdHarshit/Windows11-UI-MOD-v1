@@ -12,6 +12,32 @@ body{
   margin: 0 auto;
   position : relative;
 }
+
+body.theme-frost .clock-dial {
+  background: rgba(200,220,255,0.25);
+}
+
+body.theme-night .clock-dial {
+  background: rgba(20,20,30,0.55);
+}
+
+body.theme-ocean .clock-dial {
+  background: rgba(0,120,200,0.35);
+}
+
+body.theme-desert .clock-dial {
+  background: rgba(200,150,80,0.35);
+}
+
+body.theme-forest .clock-dial {
+  background: rgba(40,120,80,0.35);
+}
+
+body.theme-sunset .clock-dial {
+  background: rgba(200,80,100,0.35);
+}
+
+
 .point{
   width: 20px;
   height: 20px;

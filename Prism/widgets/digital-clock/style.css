@@ -21,3 +21,28 @@
 body{
   background: transparent;
 }
+
+
+body.theme-frost .digital-clock {
+  background: rgba(200,220,255,0.25);
+}
+
+body.theme-night .digital-clock {
+  background: rgba(20,20,30,0.55);
+}
+
+body.theme-ocean .digital-clock {
+  background: rgba(0,120,200,0.35);
+}
+
+body.theme-desert .digital-clock {
+  background: rgba(200,150,80,0.35);
+}
+
+body.theme-forest .digital-clock {
+  background: rgba(40,120,80,0.35);
+}
+
+body.theme-sunset .digital-clock {
+  background: rgba(200,80,100,0.35);
+}

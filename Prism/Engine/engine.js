@@ -49,18 +49,9 @@ function setEnableAll(value) {
 
 
 
-/* =========================
-   Theme logic (UI-only for now)
-   ========================= */
 document.querySelectorAll(".theme-dot").forEach(dot => {
   dot.addEventListener("click", () => {
     const theme = dot.dataset.theme;
-
-    // 🔹 Only changes control panel theme for now
-    document.getElementById("controlPanel").className =
-      "control-panel " + theme;
-
-    // 🔹 Later: we will send theme to widgets via C++
-    // window.chrome.webview.postMessage("theme:" + theme);
+    window.chrome.webview.postMessage("theme:" + theme);
   });
 });

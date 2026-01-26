@@ -34,6 +34,9 @@ function updateClock() {
   minuteHand.style.transform = `rotate(${minuteAngle}deg)`;
   secondHand.style.transform = `rotate(${secondAngle}deg)`;
 }
+function setTheme(theme) {
+  document.body.className = theme;
+}
 
 // Initialize
 //createHourMarks();

@@ -12,6 +12,7 @@
 #include <shellapi.h>
 
 std::wstring settingsFile = L"settings.txt";
+std::wstring currentTheme = L"theme-frost";
 
 
 using namespace Microsoft::WRL;
@@ -34,6 +35,22 @@ std::unordered_map<std::wstring, WidgetWindow*> widgetMap;
 
 #define SYSTEM_TIMER 1
 HWND systemWidgetHwnd = nullptr;
+
+void BroadcastTheme()
+{
+    for (auto& pair : widgetMap)
+    {
+        WidgetWindow* w = pair.second;
+        if (!w || !w->webview) continue;
+        if (w->isTaskbar) continue; // skip taskbar for v1
+
+        std::wstring js =
+            L"setTheme('" + currentTheme + L"');";
+
+        w->webview->ExecuteScript(js.c_str(), nullptr);
+    }
+}
+
 
 RECT GetRealTaskbarRect()
 {
@@ -138,6 +155,8 @@ void SaveWidgetState()
 {
     std::wofstream file(settingsFile);
     if (!file.is_open()) return;
+    file << L"theme=" << currentTheme << std::endl;
+
 
     for (auto& pair : widgetMap)
     {
@@ -161,11 +180,18 @@ void LoadWidgetState()
     while (std::getline(file, line))
     {
         size_t eq = line.find(L'=');
-        if (eq == std::wstring::npos) continue;
+    if (eq == std::wstring::npos) continue;
 
-        std::wstring key = line.substr(0, eq);
-        int val = std::stoi(line.substr(eq + 1));
-        values[key] = val;
+    std::wstring key = line.substr(0, eq);
+    std::wstring value = line.substr(eq + 1);
+
+    if (key == L"theme")
+    {
+        currentTheme = value;
+        continue;
+    }
+
+    values[key] = std::stoi(value);
     }
 
     file.close();
@@ -475,6 +501,25 @@ if (SUCCEEDED(widget->controller.As(&controller2)))
 
                 widget->webview->Navigate(widget->url.c_str());
 
+                // 🔹 Apply theme after widget loads
+widget->webview->add_NavigationCompleted(
+    Callback<ICoreWebView2NavigationCompletedEventHandler>(
+        [widget](ICoreWebView2*, ICoreWebView2NavigationCompletedEventArgs*) -> HRESULT
+        {
+            if (!widget->isControlPanel && !widget->isTaskbar)
+            {
+                std::wstring js =
+                    L"setTheme('" + currentTheme + L"');";
+
+                widget->webview->ExecuteScript(js.c_str(), nullptr);
+            }
+            return S_OK;
+        }
+    ).Get(),
+    nullptr
+);
+
+
                 // Disable interaction ONLY for widgets
                 if (!widget->isControlPanel)
                 {
@@ -567,6 +612,14 @@ widget->webview->add_NavigationCompleted(
                                     }
                                 }
 
+                                if (message.rfind(L"theme:", 0) == 0)
+{
+    currentTheme = message.substr(6); // after "theme:"
+    SaveWidgetState();
+    BroadcastTheme();
+}
+
+
                                 return S_OK;
                             }
                         ).Get(),
@@ -657,6 +710,7 @@ CreateWidget(
 
 
                 LoadWidgetState();
+                BroadcastTheme();
 
 
                 SetTimer(systemWidgetHwnd, SYSTEM_TIMER, 1000, nullptr);

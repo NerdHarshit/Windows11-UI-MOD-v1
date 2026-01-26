@@ -14,6 +14,9 @@ function weatherDescription(code) {
     if (code < 80) return "Snow";
     return "Stormy";
 }
+function setTheme(theme) {
+  document.body.className = theme;
+}
 
 function loadWeather() {
     if (!navigator.geolocation) {

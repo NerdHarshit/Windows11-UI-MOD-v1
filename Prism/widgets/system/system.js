@@ -7,3 +7,7 @@ window.chrome.webview.addEventListener("message", event => {
     document.getElementById("ram").textContent = event.data.ram + "%";
     document.getElementById("disk").textContent = event.data.disk + "%";
 });
+
+function setTheme(theme) {
+  document.body.className = theme;
+}
